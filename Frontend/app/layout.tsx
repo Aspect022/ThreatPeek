@@ -9,13 +9,13 @@ export const metadata: Metadata = {
   keywords:
     "security scanner, API key detection, vulnerability scanner, threat detection, web security, cybersecurity, AI security analysis",
   authors: [{ name: "ThreatPeek Team" }],
-  creator: "ThreatPeek",
-  publisher: "ThreatPeek",
+  creator: "Aspect022",
+  publisher: "Jayesh RL",
   robots: "index, follow",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://threatpeek.com",
+    url: "https://threat-peek.vercel.app/",
     title: "ThreatPeek - AI-Powered Threat Detection at a Glance",
     description:
       "Advanced security scanner that detects exposed API keys, secrets, and vulnerabilities in web applications using AI-powered analysis.",
@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     description:
       "Advanced security scanner that detects exposed API keys, secrets, and vulnerabilities in web applications.",
     images: ["/og-image.png"],
-    creator: "@threatpeek",
+    creator: "@aspect022",
   },
-  viewport: "width=device-width, initial-scale=1",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   themeColor: "#1f2937",
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.svg", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.svg", sizes: "16x16", type: "image/svg" },
       { url: "/favicon.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
@@ -58,8 +58,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="canonical" href="https://threatpeek.com" />
-        <meta name="google-site-verification" content="your-google-verification-code" />
+        <link rel="canonical" href="https://threat-peek.vercel.app/" />
+        <title>ThreatPeek</title>
+        <meta name="google-site-verification" content="3GE1m3-R_XNICm5gEvZhqkEecTNsIuqbwEclp3jWAAU" />
       </head>
       <body>{children}</body>
     </html>
