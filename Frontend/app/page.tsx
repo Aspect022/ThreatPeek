@@ -10,6 +10,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { wakeUpBackend } from "@/lib/api";
+
 
 
 export default function LandingPage() {
@@ -23,6 +25,11 @@ export default function LandingPage() {
 
     setIsLoading(true)
     try {
+       // Step 1: Wake up backend
+    const backendReady = await wakeUpBackend();
+    if (!backendReady) {
+      throw new Error("Cannot connect to the scanner service.");
+    }
       // Make API call to backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/scan`, {
         method: "POST",
