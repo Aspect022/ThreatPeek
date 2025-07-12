@@ -32,7 +32,7 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
         return
       }
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!
         const response = await fetch(`${apiBase}/scan/${scanId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch scan results")
