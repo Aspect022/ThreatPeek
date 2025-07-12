@@ -24,7 +24,7 @@ export default function LandingPage() {
     setIsLoading(true)
     try {
       // Make API call to backend
-      const response = await fetch("http://localhost:3001/api/scan", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/scan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +45,7 @@ export default function LandingPage() {
       let errorMessage = "Error scanning website. Please try again."
 
       if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        errorMessage = "Cannot connect to the scanner service. Please make sure the backend is running on port 3001."
+        errorMessage = "Cannot connect to the scanner service."
       }
 
       alert(errorMessage)
