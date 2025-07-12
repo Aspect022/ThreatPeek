@@ -37,19 +37,8 @@ pnpm-debug.log*
 /build
 /dist
 
-# Next.js
-/.next/
-/out/
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
 # Coverage
 coverage/
 
 # Misc
-*.local
+*.local 

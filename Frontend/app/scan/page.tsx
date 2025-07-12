@@ -1,17 +1,27 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Shield } from "lucide-react"
+import {
+  Shield,
+  Download,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Info,
+  Sparkles,
+  TrendingUp,
+  FileText,
+} from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, useRef } from "react"
 
 type ScanResult = {
-  issue: string;
-  matches?: string[]; // just an array of strings
-  severity: string;
-  file?: string;
-};
+  issue: string
+  matches?: string[] // just an array of strings
+  severity: string
+  file?: string
+}
 
 function ScanResultsContent() {
   const searchParams = useSearchParams()
@@ -35,8 +45,8 @@ function ScanResultsContent() {
       }
 
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
-        const response = await fetch(`${apiBase}/scan/${scanId}`);
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api"
+        const response = await fetch(`${apiBase}/scan/${scanId}`)
         if (!response.ok) {
           throw new Error("Failed to fetch scan results")
         }
@@ -61,33 +71,33 @@ function ScanResultsContent() {
       setAiError(null)
 
       try {
-        console.log('Requesting AI summary for scan data:', scanData);
-        
-        const response = await fetch('/api/summary', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ summary: scanData })
+        console.log("Requesting AI summary for scan data:", scanData)
+
+        const response = await fetch("/api/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ summary: scanData }),
         })
 
-        console.log('AI summary response status:', response.status);
-        
+        console.log("AI summary response status:", response.status)
+
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('AI summary error response:', errorText);
-          throw new Error(`Failed to generate AI summary: ${response.status} - ${errorText}`);
+          const errorText = await response.text()
+          console.error("AI summary error response:", errorText)
+          throw new Error(`Failed to generate AI summary: ${response.status} - ${errorText}`)
         }
 
         const data = await response.json()
-        console.log('AI summary response data:', data);
-        
+        console.log("AI summary response data:", data)
+
         if (data.error) {
-          throw new Error(data.error);
+          throw new Error(data.error)
         }
-        
+
         setAiSummary(data.summary)
       } catch (err) {
-        console.error('AI Summary Error:', err)
-        setAiError(err instanceof Error ? err.message : 'Failed to generate summary')
+        console.error("AI Summary Error:", err)
+        setAiError(err instanceof Error ? err.message : "Failed to generate summary")
         // Fallback to basic summary
         const totalIssues = scanData.results.length
         const criticalIssues = scanData.results.filter((r: ScanResult) => r.severity === "critical").length
@@ -192,6 +202,21 @@ function ScanResultsContent() {
     }
   }
 
+  const getSeverityIcon = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case "critical":
+        return <XCircle className="h-4 w-4 text-red-600" />
+      case "high":
+        return <AlertTriangle className="h-4 w-4 text-red-600" />
+      case "medium":
+        return <Info className="h-4 w-4 text-yellow-600" />
+      case "low":
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      default:
+        return <Info className="h-4 w-4 text-gray-600" />
+    }
+  }
+
   const totalIssues = scanResults.criticalCount + scanResults.highCount + scanResults.mediumCount + scanResults.lowCount
 
   return (
@@ -212,30 +237,158 @@ function ScanResultsContent() {
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Scan Results</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Security Scan Results</h1>
           <p className="text-gray-600 mb-4">Scanned: {scannedUrl}</p>
 
-          {/* Summary */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-            <p className="text-lg">
-              <span className="font-bold text-gray-900">Found {totalIssues} issues:</span>
-              {scanResults.criticalCount > 0 && (
-                <span className="ml-2 font-bold text-red-600">{scanResults.criticalCount} Critical</span>
-              )}
-              {scanResults.highCount > 0 && (
-                <span className="ml-2 font-bold text-red-600">{scanResults.highCount} High</span>
-              )}
-              {scanResults.mediumCount > 0 && (
-                <span className="ml-2 font-bold text-yellow-600">{scanResults.mediumCount} Medium</span>
-              )}
-              {scanResults.lowCount > 0 && (
-                <span className="ml-2 font-bold text-green-600">{scanResults.lowCount} Low</span>
-              )}
-            </p>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center">
+                <XCircle className="h-8 w-8 text-red-600 mr-3" />
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{scanResults.criticalCount}</p>
+                  <p className="text-sm text-gray-600">Critical</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center">
+                <AlertTriangle className="h-8 w-8 text-orange-600 mr-3" />
+                <div>
+                  <p className="text-2xl font-bold text-orange-600">{scanResults.highCount}</p>
+                  <p className="text-sm text-gray-600">High</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center">
+                <Info className="h-8 w-8 text-yellow-600 mr-3" />
+                <div>
+                  <p className="text-2xl font-bold text-yellow-600">{scanResults.mediumCount}</p>
+                  <p className="text-sm text-gray-600">Medium</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center">
+                <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{scanResults.lowCount}</p>
+                  <p className="text-sm text-gray-600">Low</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* AI Security Analysis - Enhanced UI */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl border border-purple-200 shadow-lg overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
+              <div className="flex items-center">
+                <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-lg mr-4">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">AI Security Analysis</h2>
+                  <p className="text-purple-100 text-sm">Powered by advanced threat intelligence</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {aiLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center text-purple-600">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mr-3"></div>
+                    <span className="text-lg font-medium">Analyzing security patterns with AI...</span>
+                  </div>
+                </div>
+              )}
+
+              {aiError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+                    <span className="text-red-800 font-medium">Analysis Error</span>
+                  </div>
+                  <p className="text-red-700 mt-1">{aiError}</p>
+                </div>
+              )}
+
+              {aiSummary && (
+                <div className="space-y-4">
+                  {/* Analysis Content */}
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex items-center mb-4">
+                      <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
+                      <span className="font-semibold text-gray-900">Security Assessment</span>
+                    </div>
+                    <div className="prose prose-gray max-w-none">
+                      <pre className="whitespace-pre-wrap text-gray-700 leading-relaxed font-sans text-sm">
+                        {aiSummary}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Risk Level</p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {totalIssues === 0
+                              ? "Low"
+                              : criticalCount > 0
+                                ? "Critical"
+                                : highCount > 0
+                                  ? "High"
+                                  : "Medium"}
+                          </p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                          <Shield className="h-4 w-4 text-purple-600" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Total Issues</p>
+                          <p className="text-lg font-bold text-gray-900">{totalIssues}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Scan Status</p>
+                          <p className="text-lg font-bold text-green-600">Complete</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Results Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Detailed Findings</h3>
+            <p className="text-sm text-gray-600">Complete list of security issues found during the scan</p>
+          </div>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -257,41 +410,26 @@ function ScanResultsContent() {
                     <div className="text-sm font-medium text-gray-900">{issue.issue}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">{issue.pattern}</div>
+                    <div className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded max-w-md truncate">
+                      {issue.pattern}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadge(issue.severity)}`}
-                    >
-                      {issue.severity}
-                    </span>
+                    <div className="flex items-center">
+                      {getSeverityIcon(issue.severity)}
+                      <span
+                        className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadge(issue.severity)}`}
+                      >
+                        {issue.severity}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        {/* AI Security Summary */}
-        <div className="mt-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <span className="w-2 h-2 bg-blue-600 rounded-full mr-3"></span>
-              AI Security Analysis
-            </h2>
-            {aiLoading && (
-              <div className="flex items-center text-gray-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
-                <span>Analyzing security patterns...</span>
-              </div>
-            )}
-            {aiError && <div className="text-red-600 bg-red-50 border border-red-200 rounded-md p-3">{aiError}</div>}
-            {aiSummary && (
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 border border-gray-200 rounded-md p-4">
-                <pre className="whitespace-pre-wrap">{aiSummary}</pre>
-              </div>
-            )}
-          </div>
-        </div>
+
         {/* Download Report */}
         <div className="mt-8 flex justify-center">
           <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -300,6 +438,7 @@ function ScanResultsContent() {
               onClick={() => setShowDropdown(!showDropdown)}
               type="button"
             >
+              <Download className="h-5 w-5 mr-2" />
               Download Report
               <svg
                 className={`ml-2 w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
@@ -364,6 +503,12 @@ function ScanResultsContent() {
                       report += `- Medium: ${scanResults.mediumCount}\n`
                       report += `- Low: ${scanResults.lowCount}\n\n`
 
+                      if (aiSummary) {
+                        report += `AI ANALYSIS:\n`
+                        report += `${"-".repeat(20)}\n`
+                        report += `${aiSummary}\n\n`
+                      }
+
                       report += `DETAILED FINDINGS:\n`
                       report += `${"-".repeat(20)}\n\n`
 
@@ -396,7 +541,7 @@ function ScanResultsContent() {
                     </svg>
                     <div>
                       <div className="font-medium">Download as Text Report</div>
-                      <div className="text-xs text-gray-500">Formatted summary</div>
+                      <div className="text-xs text-gray-500">Formatted summary with AI analysis</div>
                     </div>
                   </button>
                 </div>
