@@ -96,7 +96,7 @@ export default function PrivacyPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">7. Contact Us</h2>
               <p className="mb-4">
-                If you have any questions about this Privacy Policy, please contact us at privacy@ThreatPeek.com.
+                If you have any questions about this Privacy Policy, please contact us at jayeshrl2005@gmail.com.
               </p>
             </section>
           </div>

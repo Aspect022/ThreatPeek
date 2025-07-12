@@ -84,7 +84,7 @@ export default function TermsPage() {
             <section className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Contact Information</h2>
               <p className="mb-4">
-                If you have any questions about these Terms of Service, please contact us at legal@ThreatPeek.com.
+                If you have any questions about these Terms of Service, please contact us at jayeshrl2005@gmail.com.
               </p>
             </section>
           </div>

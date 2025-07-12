@@ -62,13 +62,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
-                <Image
-                  src="/logo.png" // put your logo inside /public folder as logo.png
-                  alt="ThreatPeek Logo"
-                  width={32}
-                  height={32}
-                  className="mr-2 rounded" // optional rounded corners
-                />
+              <Shield className="h-8 w-8 text-blue-400 mr-2" />
                 <span className="text-white text-xl font-bold">ThreatPeek</span>
               </div>
             </Link>
@@ -277,34 +271,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Trust Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center mb-6">
-            <Lock className="h-8 w-8 text-green-600 mr-3" />
-            <h3 className="text-2xl font-bold text-gray-900">Trusted by Security Teams</h3>
-          </div>
-          <p className="text-lg text-gray-600 mb-8">
-            ThreatPeek helps developers and security professionals identify vulnerabilities before they become breaches.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-blue-600 mb-2">10,000+</div>
-              <div className="text-gray-600">Websites Scanned</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-green-600 mb-2">50,000+</div>
-              <div className="text-gray-600">Vulnerabilities Found</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-purple-600 mb-2">99.9%</div>
-              <div className="text-gray-600">Accuracy Rate</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
