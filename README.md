@@ -1,6 +1,6 @@
 # ThreatPeek
 
-![ThreatPeek Logo](public/logo.png)
+
 
 AI-Powered Threat Detection at a Glance
 
