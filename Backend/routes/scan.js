@@ -1,8 +1,11 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { scanWebsite, getScanResults } = require("../controllers/improvedScanController");
+const scanController = require('../controllers/scanController');
 
-router.post("/scan", scanWebsite);
-router.get("/scan/:scanId", getScanResults);
+// POST /api/scan
+router.post('/', scanController.scanWebsite);
+
+// GET /api/scan/:scanId
+router.get('/:scanId', scanController.getScanResults);
 
 module.exports = router;
