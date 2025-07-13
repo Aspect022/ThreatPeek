@@ -25,11 +25,11 @@ export default function LandingPage() {
 
     setIsLoading(true)
     try {
-       // Step 1: Wake up backend
-    const backendReady = await wakeUpBackend();
-    if (!backendReady) {
-      throw new Error("Cannot connect to the scanner service.");
-    }
+    //    // Step 1: Wake up backend
+    // const backendReady = await wakeUpBackend();
+    // if (!backendReady) {
+    //   throw new Error("Cannot connect to the scanner service.");
+    // }
       // Make API call to backend
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/scan`, {
         method: "POST",
@@ -98,8 +98,7 @@ export default function LandingPage() {
             ThreatPeek - Security at a Glance
           </h1>
           <p className="text-xl sm:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            Advanced AI-powered security scanner that detects exposed API keys, secrets, and vulnerabilities in your web
-            applications instantly.
+            Advanced AI-powered security scanner with deep HTML & JavaScript file analysis that detects exposed API keys, secrets, and vulnerabilities in your web applications instantly.
           </p>
 
           {/* URL Input Section */}
@@ -154,18 +153,17 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* API Key Detection Card */}
+            {/* Deep Scanning Card */}
             <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
                   <Search className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-gray-900">Smart Detection</CardTitle>
+                <CardTitle className="text-2xl font-bold text-gray-900">Deep Scanning</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-gray-600 text-center text-lg leading-relaxed">
-                  Advanced pattern matching to identify exposed API keys, tokens, and credentials with minimal false
-                  positives
+                  Advanced HTML & JavaScript file scanning with CDN filtering, caching, and 70+ security patterns for comprehensive threat detection
                 </CardDescription>
               </CardContent>
             </Card>

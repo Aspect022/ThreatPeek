@@ -1,9 +1,13 @@
 const axios = require("axios");
 const { v4: uuidv4 } = require('uuid');
+const cheerio = require('cheerio');
 const improvedPatterns = require("../utils/improvedRegexPatterns");
 
 // In-memory storage for scan results
 const storedScans = new Map();
+
+// Cache for scanned JS URLs to avoid duplicate fetches
+const jsUrlCache = new Map();
 
 // File patterns to exclude from scanning
 const EXCLUDED_PATTERNS = [
@@ -17,6 +21,17 @@ const EXCLUDED_PATTERNS = [
   /vendors-node_modules/i, // GitHub's vendor bundles
   /_[a-f0-9]{8,}\./i, // Hashed vendor files
   /\.production\.min\./i, // Production builds
+];
+
+// CDN domains to skip (optional - can be enabled/disabled)
+const CDN_DOMAINS = [
+  'cdn.jsdelivr.net',
+  'unpkg.com',
+  'cdnjs.cloudflare.com',
+  'ajax.googleapis.com',
+  'gstatic.com',
+  'googleapis.com',
+  'cloudflare.com'
 ];
 
 // Maximum file size to scan (5MB)
@@ -39,6 +54,16 @@ function shouldExcludeUrl(url) {
   }
   
   return EXCLUDED_PATTERNS.some(pattern => pattern.test(url));
+}
+
+// Check if URL is from a CDN
+function isCDNUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    return CDN_DOMAINS.some(domain => urlObj.hostname.includes(domain));
+  } catch (err) {
+    return false;
+  }
 }
 
 // Extract context around a match
@@ -146,6 +171,119 @@ function processMatches(content, pattern) {
   return results;
 }
 
+// Extract JS files from HTML using cheerio
+function extractJSFiles(html, baseUrl) {
+  const $ = cheerio.load(html);
+  const jsFiles = new Set();
+
+  // Extract script tags with src attribute
+  $("script[src]").each((_, el) => {
+    let src = $(el).attr("src");
+    
+    // Skip data URLs and inline scripts
+    if (src.startsWith('data:') || src.startsWith('javascript:')) {
+      return;
+    }
+    
+    // Handle relative URLs
+    if (!src.startsWith('http')) {
+      if (src.startsWith('//')) {
+        src = new URL(src, baseUrl).href;
+      } else if (src.startsWith('/')) {
+        src = new URL(src, baseUrl).href;
+      } else {
+        src = new URL(src, baseUrl).href;
+      }
+    }
+    
+    // Skip if should be excluded
+    if (!shouldExcludeUrl(src)) {
+      jsFiles.add(src);
+    }
+  });
+
+  return Array.from(jsFiles);
+}
+
+// Fetch and scan JS file content
+async function scanJSFile(url, patterns, scanProgress) {
+  try {
+    // Check cache first
+    if (jsUrlCache.has(url)) {
+      console.log(`[CACHE] Using cached content for: ${url}`);
+      return jsUrlCache.get(url);
+    }
+
+    console.log(`[SCAN] Fetching: ${url}`);
+    
+    const response = await axios.get(url, {
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ThreatPeek/1.0; +https://ThreatPeek.com)'
+      },
+      maxContentLength: MAX_FILE_SIZE
+    });
+    
+    const content = response.data;
+    
+    // Skip if content is too large
+    if (content.length > MAX_FILE_SIZE) {
+      console.log(`[SKIP] File too large: ${url} (${content.length} bytes)`);
+      return [];
+    }
+
+    const matches = [];
+    
+    // Scan with patterns
+    for (const pattern of patterns) {
+      const patternMatches = processMatches(content, pattern);
+      
+      if (patternMatches.length > 0) {
+        matches.push({
+          file: url,
+          issue: pattern.name,
+          severity: pattern.severity,
+          matches: patternMatches
+        });
+      }
+    }
+
+    // Cache the results
+    jsUrlCache.set(url, matches);
+    
+    // Update progress
+    if (scanProgress) {
+      scanProgress.current++;
+      scanProgress.total = Math.max(scanProgress.total, scanProgress.current);
+    }
+
+    return matches;
+  } catch (err) {
+    console.log(`[ERROR] Failed to scan ${url}: ${err.message}`);
+    return [];
+  }
+}
+
+// Scan HTML content for patterns
+function scanHTMLContent(html, patterns) {
+  const matches = [];
+  
+  for (const pattern of patterns) {
+    const patternMatches = processMatches(html, pattern);
+    
+    if (patternMatches.length > 0) {
+      matches.push({
+        file: 'HTML Content',
+        issue: pattern.name,
+        severity: pattern.severity,
+        matches: patternMatches
+      });
+    }
+  }
+  
+  return matches;
+}
+
 exports.scanWebsite = async (req, res) => {
   const { url } = req.body;
 
@@ -161,99 +299,122 @@ exports.scanWebsite = async (req, res) => {
       return res.status(400).json({ error: "Invalid URL format" });
     }
 
-    console.log(`Starting improved scan for: ${url}`);
+    console.log(`🚀 Starting deep scan for: ${url}`);
 
     // Fetch HTML
-    const htmlResponse = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ThreatPeek/1.0; +https://ThreatPeek.com)'
+    let htmlResponse;
+    let html;
+    try {
+      console.log(`[HTML] Fetching main page...`);
+      htmlResponse = await axios.get(url, {
+        timeout: 15000,
+        maxContentLength: MAX_FILE_SIZE,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; ThreatPeek/1.0; +https://ThreatPeek.com)'
+        }
+      });
+      if (!htmlResponse.headers["content-type"] || !htmlResponse.headers["content-type"].includes("text/html")) {
+        console.log("Skipping non-HTML content:", url);
+        return res.status(400).json({ error: "URL does not return HTML content" });
       }
-    });
-    const html = htmlResponse.data;
-
-    // Extract script URLs
-    const scriptRegexes = [
-      /<script[^>]*src=["']([^"']+)["'][^>]*>/gi,
-      /<script[^>]*src=([^\s>"']+)[^>]*>/gi
-    ];
-
-    const scriptUrls = new Set();
-    
-    for (const regex of scriptRegexes) {
-      let match;
-      while ((match = regex.exec(html)) !== null) {
-        let scriptUrl = match[1].trim();
-        
-        // Skip data URLs and inline scripts
-        if (scriptUrl.startsWith('data:') || scriptUrl.startsWith('javascript:')) {
-          continue;
-        }
-        
-        // Handle relative URLs
-        if (!scriptUrl.startsWith('http')) {
-          if (scriptUrl.startsWith('//')) {
-            scriptUrl = validUrl.protocol + scriptUrl;
-          } else if (scriptUrl.startsWith('/')) {
-            scriptUrl = validUrl.origin + scriptUrl;
-          } else {
-            scriptUrl = new URL(scriptUrl, validUrl.href).href;
-          }
-        }
-        
-        // Skip if should be excluded
-        if (!shouldExcludeUrl(scriptUrl)) {
-          scriptUrls.add(scriptUrl);
-        }
-      }
+      html = htmlResponse.data;
+    } catch (err) {
+      console.error(`[ERROR] Failed to fetch or parse HTML for ${url}:`, err.message);
+      return res.status(500).json({ error: `Failed to fetch or parse HTML: ${err.message}` });
     }
 
-    console.log(`Found ${scriptUrls.size} script URLs to scan`);
+    // Extract JS files using cheerio
+    let jsFiles = [];
+    try {
+      console.log(`[JS] Extracting JavaScript files...`);
+      const $ = cheerio.load(html);
+      const jsSet = new Set();
+      $("script[src]").each((_, el) => {
+        let src = $(el).attr("src");
+        if (src.startsWith('data:') || src.startsWith('javascript:')) return;
+        if (!src.startsWith('http')) {
+          src = new URL(src, url).href;
+        }
+        if (!shouldExcludeUrl(src)) {
+          jsSet.add(src);
+        }
+      });
+      jsFiles = Array.from(jsSet);
+    } catch (err) {
+      console.error(`[ERROR] cheerio.load failed for ${url}:`, err.message);
+      return res.status(500).json({ error: `Failed to parse HTML for JS extraction: ${err.message}` });
+    }
+
+    // Filter out CDN files (optional - can be disabled)
+    const filteredJsFiles = jsFiles.filter(file => !isCDNUrl(file));
+    console.log(`[INFO] Found ${jsFiles.length} JS files (${filteredJsFiles.length} after CDN filtering)`);
+
+    // Scan progress tracking
+    const scanProgress = {
+      current: 0,
+      total: filteredJsFiles.length + 1 // +1 for HTML scan
+    };
 
     const scanResults = [];
     let scannedCount = 0;
+    let skippedCount = 0;
 
-    // Process each script URL
-    for (const scriptUrl of scriptUrls) {
+    // 1. Scan HTML content first
+    try {
+      console.log(`[HTML] Scanning main page content...`);
+      const htmlMatches = scanHTMLContent(html, improvedPatterns);
+      scanResults.push(...htmlMatches);
+      scannedCount++;
+    } catch (err) {
+      console.error(`[ERROR] Failed to scan HTML content for ${url}:`, err.message);
+    }
+
+    // 2. Scan each JS file
+    console.log(`[JS] Starting JavaScript file scanning...`);
+    for (const jsUrl of filteredJsFiles) {
       try {
-        console.log(`Scanning: ${scriptUrl}`);
-        
-        const response = await axios.get(scriptUrl, {
-          timeout: 5000,
+        // Fetch JS file with timeout and size limit
+        const response = await axios.get(jsUrl, {
+          timeout: 8000,
+          maxContentLength: MAX_FILE_SIZE,
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; ThreatPeek/1.0; +https://ThreatPeek.com)'
-          },
-          maxContentLength: MAX_FILE_SIZE
+          }
         });
-        
-        const content = response.data;
-        scannedCount++;
-
-        // Skip if content is too large
-        if (content.length > MAX_FILE_SIZE) {
-          console.log(`Skipping ${scriptUrl} - file too large`);
+        // Validate content-type for JS
+        const contentType = response.headers["content-type"] || "";
+        if (!contentType.includes("javascript") && !contentType.includes("text/plain")) {
+          console.log(`[SKIP] Non-JS content-type for: ${jsUrl} (${contentType})`);
+          skippedCount++;
           continue;
         }
-
-        // Scan with improved patterns
+        const content = response.data;
+        if (content.length > MAX_FILE_SIZE) {
+          console.log(`[SKIP] File too large: ${jsUrl} (${content.length} bytes)`);
+          skippedCount++;
+          continue;
+        }
+        // Scan with patterns
         for (const pattern of improvedPatterns) {
           const matches = processMatches(content, pattern);
-          
           if (matches.length > 0) {
             scanResults.push({
-              file: scriptUrl,
+              file: jsUrl,
               issue: pattern.name,
               severity: pattern.severity,
               matches: matches
             });
           }
         }
+        scannedCount++;
       } catch (err) {
-        console.log(`Failed to scan ${scriptUrl}: ${err.message}`);
+        console.log(`[ERROR] Failed to scan ${jsUrl}: ${err.message}`);
+        skippedCount++;
       }
     }
 
-    console.log(`Scan complete. Scanned ${scannedCount} files, found ${scanResults.length} potential issues`);
+    console.log(`✅ Deep scan complete!`);
+    console.log(`📊 Results: Scanned ${scannedCount} files, skipped ${skippedCount}, found ${scanResults.length} potential issues`);
     
     // Generate scan ID and store results
     const scanId = uuidv4();
@@ -261,22 +422,36 @@ exports.scanWebsite = async (req, res) => {
       url: url,
       timestamp: new Date().toISOString(),
       filesScanned: scannedCount,
-      results: scanResults
+      filesSkipped: skippedCount,
+      jsFilesFound: jsFiles.length,
+      jsFilesScanned: filteredJsFiles.length,
+      results: scanResults,
+      scanType: 'deep'
     });
     
-    // Clean up old results
+    // Clean up old results (keep last 100 scans)
     if (storedScans.size > 100) {
       const oldestKey = storedScans.keys().next().value;
       storedScans.delete(oldestKey);
     }
     
+    // Clean up cache (keep last 200 URLs)
+    if (jsUrlCache.size > 200) {
+      const oldestKey = jsUrlCache.keys().next().value;
+      jsUrlCache.delete(oldestKey);
+    }
+    
     res.json({ 
       scanId, 
       filesScanned: scannedCount,
-      issuesFound: scanResults.length 
+      filesSkipped: skippedCount,
+      jsFilesFound: jsFiles.length,
+      jsFilesScanned: filteredJsFiles.length,
+      issuesFound: scanResults.length,
+      scanType: 'deep'
     });
   } catch (error) {
-    console.error('Scan error:', error.message);
+    console.error('❌ Scan error:', error.message);
     res.status(500).json({ error: `Failed to scan website: ${error.message}` });
   }
 };

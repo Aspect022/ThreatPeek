@@ -23,11 +23,21 @@ type ScanResult = {
   file?: string
 }
 
+type ScanData = {
+  results: ScanResult[]
+  filesScanned?: number
+  filesSkipped?: number
+  jsFilesFound?: number
+  jsFilesScanned?: number
+  scanType?: string
+  timestamp?: string
+}
+
 function ScanResultsContent() {
   const searchParams = useSearchParams()
   const scannedUrl = searchParams.get("url") || "https://example.com"
   const scanId = searchParams.get("scanId")
-  const [scanData, setScanData] = useState<{ results: ScanResult[] }>({ results: [] })
+  const [scanData, setScanData] = useState<ScanData>({ results: [] })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -239,6 +249,39 @@ function ScanResultsContent() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Security Scan Results</h1>
           <p className="text-gray-600 mb-4">Scanned: {scannedUrl}</p>
+
+          {/* Scan Information */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+              <span className="text-sm font-medium text-blue-800">
+                {scanData.scanType === 'deep' ? 'Deep Scan' : 'Standard Scan'} Completed
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Files Scanned:</span>
+                <span className="font-medium ml-1">{scanData.filesScanned || 0}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">JS Files Found:</span>
+                <span className="font-medium ml-1">{scanData.jsFilesFound || 0}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">JS Files Scanned:</span>
+                <span className="font-medium ml-1">{scanData.jsFilesScanned || 0}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Files Skipped:</span>
+                <span className="font-medium ml-1">{scanData.filesSkipped || 0}</span>
+              </div>
+            </div>
+            {scanData.timestamp && (
+              <div className="text-xs text-gray-500 mt-2">
+                Scan completed: {new Date(scanData.timestamp).toLocaleString()}
+              </div>
+            )}
+          </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
