@@ -18,6 +18,7 @@ export default function LandingPage() {
   const [url, setUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const [scanMode, setScanMode] = useState<'basic' | 'deep'>('deep')
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +37,7 @@ export default function LandingPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, scanMode }),
       })
 
       if (!response.ok) {
@@ -116,6 +117,19 @@ export default function LandingPage() {
                   className="h-14 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   required
                 />
+              </div>
+              <div className="flex flex-col justify-center">
+                <label htmlFor="scanMode" className="text-xs font-medium text-gray-700 mb-1 ml-1">Scan Mode</label>
+                <select
+                  id="scanMode"
+                  value={scanMode}
+                  onChange={e => setScanMode(e.target.value as 'basic' | 'deep')}
+                  className="h-10 rounded-lg border border-gray-300 px-3 text-base focus:border-blue-500 focus:ring-blue-500 bg-white"
+                  style={{ minWidth: 120 }}
+                >
+                  <option value="basic">Basic</option>
+                  <option value="deep">Deep</option>
+                </select>
               </div>
               <Button
                 type="submit"
