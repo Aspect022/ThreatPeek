@@ -5,19 +5,35 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const scanRoutes = require('./routes/scan');
+const enhancedScanRoutes = require('./routes/enhancedScan');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Production environment check
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Security middleware
 app.use(helmet());
-const allowedOrigins = ['https://threat-peek.vercel.app'];
+
+// CORS configuration for development and production
+const allowedOrigins = [
+  'https://threat-peek.vercel.app',
+  'https://threatpeek.vercel.app', // Add your actual Vercel domain
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL // Allow dynamic frontend URL from env
+].filter(Boolean); // Remove undefined values
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -42,16 +58,31 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api', scanRoutes);
+app.use('/api/enhanced-scan', enhancedScanRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+
+  // Don't leak error details in production
+  const errorMessage = isProduction
+    ? 'Something went wrong!'
+    : err.message;
+
+  res.status(500).json({
+    error: errorMessage,
+    ...(isProduction ? {} : { stack: err.stack })
+  });
 });
 
 // 404 handler

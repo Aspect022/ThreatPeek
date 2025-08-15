@@ -1,6 +1,11 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
+import {
+  EnhancedResultsDisplay,
+  type Finding,
+  type ScanResultCategory,
+} from "@/components/ui/enhanced-results-display";
 import {
   Shield,
   Download,
@@ -11,150 +16,269 @@ import {
   Sparkles,
   TrendingUp,
   FileText,
-} from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { useState, useEffect, useRef } from "react"
+} from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import {
+  normalizeScanData,
+  extractAllFindings,
+  convertToLegacyFormat,
+  type EnhancedScanData,
+} from "@/lib/scan-utils";
 
 type ScanResult = {
-  issue: string
-  matches?: string[] // just an array of strings
-  severity: string
-  file?: string
-}
+  issue: string;
+  matches?: string[]; // just an array of strings
+  severity: string;
+  file?: string;
+};
 
 type ScanData = {
-  results: ScanResult[]
-  filesScanned?: number
-  filesSkipped?: number
-  jsFilesFound?: number
-  jsFilesScanned?: number
-  scanType?: string
-  timestamp?: string
+  results: ScanResult[];
+  status?: string;
+  progress?: {
+    current: number;
+    total: number;
+    phases?: Array<{
+      type: string;
+      status: string;
+      progress: number;
+    }>;
+  };
+  filesScanned?: number;
+  filesSkipped?: number;
+  jsFilesFound?: number;
+  jsFilesScanned?: number;
+  scanType?: string;
+  timestamp?: string;
+};
+
+// Transform legacy scan data to enhanced format
+function transformScanDataToEnhanced(scanData: any): ScanResultCategory[] {
+  const normalizedData = normalizeScanData(scanData);
+
+  // Map categories to the expected enum values
+  return normalizedData.results.categories.map((category: any) => ({
+    ...category,
+    category: mapCategoryToEnum(category.category),
+  }));
+}
+
+// Helper function to map category strings to the expected enum values
+function mapCategoryToEnum(
+  category: string
+): "secrets" | "files" | "headers" | "owasp" | "misconfig" {
+  switch (category.toLowerCase()) {
+    case "secrets":
+    case "secret":
+      return "secrets";
+    case "files":
+    case "file":
+    case "exposed files":
+      return "files";
+    case "headers":
+    case "header":
+    case "security headers":
+      return "headers";
+    case "owasp":
+    case "vulnerabilities":
+    case "vulnerability":
+      return "owasp";
+    case "misconfig":
+    case "misconfiguration":
+    case "configuration":
+      return "misconfig";
+    default:
+      return "misconfig"; // Default fallback
+  }
 }
 
 function ScanResultsContent() {
-  const searchParams = useSearchParams()
-  const scannedUrl = searchParams.get("url") || "https://example.com"
-  const scanId = searchParams.get("scanId")
-  const [scanData, setScanData] = useState<ScanData>({ results: [] })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [aiSummary, setAiSummary] = useState<string | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState<string | null>(null)
+  const searchParams = useSearchParams();
+  const scannedUrl = searchParams.get("url") || "https://example.com";
+  const scanId = searchParams.get("scanId");
+  const [scanData, setScanData] = useState<ScanData>({ results: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+
     const fetchScanResults = async () => {
       if (!scanId) {
-        setError("No scan ID provided")
-        setIsLoading(false)
-        return
+        setError("No scan ID provided");
+        setIsLoading(false);
+        return;
       }
 
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!
-        const response = await fetch(`${apiBase}/scan/${scanId}`)
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!;
+        const response = await fetch(
+          `${apiBase}/enhanced-scan/${scanId}/results`
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch scan results")
+          throw new Error("Failed to fetch scan results");
         }
-        const data = await response.json()
-        setScanData(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-      } finally {
-        setIsLoading(false)
-      }
-    }
+        const data = await response.json();
+        // console.log("Received scan data:", data); // Removed for production
 
-    fetchScanResults()
-  }, [scanId])
+        // Check if scan is still running
+        if (data.status === "running" || data.status === "initializing") {
+          // console.log(`Scan still ${data.status}, continuing to poll...`); // Removed for production
+          setScanData(data); // Update with current progress
+          // Continue polling every 2 seconds
+          pollInterval = setTimeout(fetchScanResults, 2000);
+        } else {
+          // Scan is complete (completed, failed, partial, timeout)
+          // console.log(`Scan finished with status: ${data.status}`); // Removed for production
+          setScanData(data);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching scan results:", err);
+        setError(err instanceof Error ? err.message : String(err));
+        setIsLoading(false);
+      }
+    };
+
+    fetchScanResults();
+
+    // Cleanup function to clear polling interval
+    return () => {
+      if (pollInterval) {
+        clearTimeout(pollInterval);
+      }
+    };
+  }, [scanId]);
 
   // AI Summary using Gemini API
   useEffect(() => {
-    if (!scanData || !scanData.results) return
+    if (!scanData || !scanData.results) return;
 
     const generateAiSummary = async () => {
-      setAiLoading(true)
-      setAiError(null)
+      setAiLoading(true);
+      setAiError(null);
 
       try {
-        console.log("Requesting AI summary for scan data:", scanData)
+        // console.log("Requesting AI summary for scan data:", scanData); // Removed for production
 
         const response = await fetch("/api/summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ summary: scanData }),
-        })
+        });
 
-        console.log("AI summary response status:", response.status)
+        // console.log("AI summary response status:", response.status); // Removed for production
 
         if (!response.ok) {
-          const errorText = await response.text()
-          console.error("AI summary error response:", errorText)
-          throw new Error(`Failed to generate AI summary: ${response.status} - ${errorText}`)
+          const errorText = await response.text();
+          console.error("AI summary error response:", errorText);
+          throw new Error(
+            `Failed to generate AI summary: ${response.status} - ${errorText}`
+          );
         }
 
-        const data = await response.json()
-        console.log("AI summary response data:", data)
+        const data = await response.json();
+        // console.log("AI summary response data:", data); // Removed for production
 
         if (data.error) {
-          throw new Error(data.error)
+          throw new Error(data.error);
         }
 
-        setAiSummary(data.summary)
+        setAiSummary(data.summary);
       } catch (err) {
-        console.error("AI Summary Error:", err)
-        setAiError(err instanceof Error ? err.message : "Failed to generate summary")
-        // Fallback to basic summary
-        const totalIssues = scanData.results.length
-        const criticalIssues = scanData.results.filter((r: ScanResult) => r.severity === "critical").length
-        const highIssues = scanData.results.filter((r: ScanResult) => r.severity === "high").length
+        console.error("AI Summary Error:", err);
+        setAiError(
+          err instanceof Error ? err.message : "Failed to generate summary"
+        );
+        // Fallback to basic summary using normalized data
+        const normalizedData = normalizeScanData(scanData);
+        const allFindings = extractAllFindings(normalizedData);
+        const totalIssues = allFindings.length;
+        const criticalIssues = allFindings.filter(
+          (f: any) => f.severity === "critical"
+        ).length;
+        const highIssues = allFindings.filter(
+          (f: any) => f.severity === "high"
+        ).length;
 
-        let fallbackSummary = `Security Analysis Summary:\n\n`
+        let fallbackSummary = `Security Analysis Summary:\n\n`;
         if (criticalIssues > 0) {
-          fallbackSummary += `🚨 CRITICAL: Found ${criticalIssues} critical security issue${criticalIssues > 1 ? "s" : ""} requiring immediate attention.\n\n`
+          fallbackSummary += `🚨 CRITICAL: Found ${criticalIssues} critical security issue${
+            criticalIssues > 1 ? "s" : ""
+          } requiring immediate attention.\n\n`;
         }
         if (highIssues > 0) {
-          fallbackSummary += `⚠️ HIGH RISK: Detected ${highIssues} high-risk vulnerability${highIssues > 1 ? "ies" : "y"}.\n\n`
+          fallbackSummary += `⚠️ HIGH RISK: Detected ${highIssues} high-risk vulnerability${
+            highIssues > 1 ? "ies" : "y"
+          }.\n\n`;
         }
-        fallbackSummary += `📊 RECOMMENDATION: Address critical and high-severity issues first.`
-        setAiSummary(fallbackSummary)
+        fallbackSummary += `📊 RECOMMENDATION: Address critical and high-severity issues first.`;
+        setAiSummary(fallbackSummary);
       } finally {
-        setAiLoading(false)
+        setAiLoading(false);
       }
-    }
+    };
 
-    generateAiSummary()
-  }, [scanData])
+    generateAiSummary();
+  }, [scanData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
       }
     }
     if (showDropdown) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     } else {
-      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [showDropdown])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600">Loading scan results...</p>
+          <p className="text-xl text-gray-600 mb-2">
+            {scanData.status === "running"
+              ? "Scanning in progress..."
+              : "Loading scan results..."}
+          </p>
+          {scanData.status === "running" && scanData.progress && (
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: `${
+                    (scanData.progress.current / scanData.progress.total) * 100
+                  }%`,
+                }}
+              ></div>
+            </div>
+          )}
+          {scanData.status === "running" && (
+            <p className="text-sm text-gray-500">
+              Please wait while we analyze your target for security
+              vulnerabilities...
+            </p>
+          )}
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -170,64 +294,52 @@ function ScanResultsContent() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  // Process scan results to match the expected format
-  const processedResults = scanData.results.map((result, index) => ({
-    id: index + 1,
-    issue: result.issue,
-    pattern: result.matches?.[0] || "Pattern matched",
-    severity: result.severity.charAt(0).toUpperCase() + result.severity.slice(1),
-    file: result.file,
-    matchCount: result.matches?.length || 1,
-  }))
+  // Transform scan data to enhanced format
+  const enhancedResults = transformScanDataToEnhanced(scanData);
 
-  // Calculate severity counts
-  const criticalCount = processedResults.filter((r) => r.severity === "Critical").length
-  const highCount = processedResults.filter((r) => r.severity === "High").length
-  const mediumCount = processedResults.filter((r) => r.severity === "Medium").length
-  const lowCount = processedResults.filter((r) => r.severity === "Low").length
-
-  const scanResults = {
-    criticalCount,
-    highCount,
-    mediumCount,
-    lowCount,
-    issues: processedResults,
-  }
+  // Calculate severity counts for backward compatibility
+  const allFindings = enhancedResults.flatMap((category) => category.findings);
+  const criticalCount = allFindings.filter(
+    (f) => f.severity === "critical"
+  ).length;
+  const highCount = allFindings.filter((f) => f.severity === "high").length;
+  const mediumCount = allFindings.filter((f) => f.severity === "medium").length;
+  const lowCount = allFindings.filter((f) => f.severity === "low").length;
 
   const getSeverityBadge = (severity: string) => {
     switch (severity.toLowerCase()) {
       case "critical":
-        return "bg-red-100 text-red-800 border border-red-200"
+        return "bg-red-100 text-red-800 border border-red-200";
       case "high":
-        return "bg-red-100 text-red-800 border border-red-200"
+        return "bg-red-100 text-red-800 border border-red-200";
       case "medium":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200"
+        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
       case "low":
-        return "bg-green-100 text-green-800 border border-green-200"
+        return "bg-green-100 text-green-800 border border-green-200";
       default:
-        return "bg-gray-100 text-gray-800 border border-gray-200"
+        return "bg-gray-100 text-gray-800 border border-gray-200";
     }
-  }
+  };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity.toLowerCase()) {
       case "critical":
-        return <XCircle className="h-4 w-4 text-red-600" />
+        return <XCircle className="h-4 w-4 text-red-600" />;
       case "high":
-        return <AlertTriangle className="h-4 w-4 text-red-600" />
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
       case "medium":
-        return <Info className="h-4 w-4 text-yellow-600" />
+        return <Info className="h-4 w-4 text-yellow-600" />;
       case "low":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
       default:
-        return <Info className="h-4 w-4 text-gray-600" />
+        return <Info className="h-4 w-4 text-gray-600" />;
     }
-  }
+  };
 
-  const totalIssues = scanResults.criticalCount + scanResults.highCount + scanResults.mediumCount + scanResults.lowCount
+  const totalIssues = criticalCount + highCount + mediumCount + lowCount;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -237,7 +349,9 @@ function ScanResultsContent() {
           <div className="flex items-center h-16">
             <Link href="/" className="flex items-center">
               <Shield className="h-8 w-8 text-blue-600 mr-2" />
-              <span className="text-gray-900 text-xl font-bold">ThreatPeek</span>
+              <span className="text-gray-900 text-xl font-bold">
+                ThreatPeek
+              </span>
             </Link>
           </div>
         </div>
@@ -247,34 +361,62 @@ function ScanResultsContent() {
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Security Scan Results</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Security Scan Results
+          </h1>
           <p className="text-gray-600 mb-4">Scanned: {scannedUrl}</p>
 
           {/* Scan Information */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div
+            className={`border rounded-lg p-4 mb-6 ${
+              scanData.status === "running"
+                ? "bg-yellow-50 border-yellow-200"
+                : scanData.status === "completed"
+                ? "bg-green-50 border-green-200"
+                : scanData.status === "partial"
+                ? "bg-orange-50 border-orange-200"
+                : "bg-blue-50 border-blue-200"
+            }`}
+          >
             <div className="flex items-center mb-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-              <span className="text-sm font-medium text-blue-800">
-                {scanData.scanType === 'deep' ? 'Deep Scan' : 'Standard Scan'} Completed
+              <div
+                className={`w-2 h-2 rounded-full mr-2 ${
+                  scanData.status === "running"
+                    ? "bg-yellow-500 animate-pulse"
+                    : scanData.status === "completed"
+                    ? "bg-green-500"
+                    : scanData.status === "partial"
+                    ? "bg-orange-500"
+                    : "bg-blue-500"
+                }`}
+              ></div>
+              <span
+                className={`text-sm font-medium ${
+                  scanData.status === "running"
+                    ? "text-yellow-800"
+                    : scanData.status === "completed"
+                    ? "text-green-800"
+                    : scanData.status === "partial"
+                    ? "text-orange-800"
+                    : "text-blue-800"
+                }`}
+              >
+                {scanData.status === "running"
+                  ? "Scan In Progress..."
+                  : scanData.status === "completed"
+                  ? `${
+                      scanData.scanType === "deep"
+                        ? "Deep Scan"
+                        : "Standard Scan"
+                    } Completed`
+                  : scanData.status === "partial"
+                  ? "Scan Completed with Partial Results"
+                  : `${
+                      scanData.scanType === "deep"
+                        ? "Deep Scan"
+                        : "Standard Scan"
+                    } Completed`}
               </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Files Scanned:</span>
-                <span className="font-medium ml-1">{scanData.filesScanned || 0}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">JS Files Found:</span>
-                <span className="font-medium ml-1">{scanData.jsFilesFound || 0}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">JS Files Scanned:</span>
-                <span className="font-medium ml-1">{scanData.jsFilesScanned || 0}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Files Skipped:</span>
-                <span className="font-medium ml-1">{scanData.filesSkipped || 0}</span>
-              </div>
             </div>
             {scanData.timestamp && (
               <div className="text-xs text-gray-500 mt-2">
@@ -289,7 +431,9 @@ function ScanResultsContent() {
               <div className="flex items-center">
                 <XCircle className="h-8 w-8 text-red-600 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold text-red-600">{scanResults.criticalCount}</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {criticalCount}
+                  </p>
                   <p className="text-sm text-gray-600">Critical</p>
                 </div>
               </div>
@@ -298,7 +442,9 @@ function ScanResultsContent() {
               <div className="flex items-center">
                 <AlertTriangle className="h-8 w-8 text-orange-600 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold text-orange-600">{scanResults.highCount}</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {highCount}
+                  </p>
                   <p className="text-sm text-gray-600">High</p>
                 </div>
               </div>
@@ -307,7 +453,9 @@ function ScanResultsContent() {
               <div className="flex items-center">
                 <Info className="h-8 w-8 text-yellow-600 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold text-yellow-600">{scanResults.mediumCount}</p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {mediumCount}
+                  </p>
                   <p className="text-sm text-gray-600">Medium</p>
                 </div>
               </div>
@@ -316,7 +464,9 @@ function ScanResultsContent() {
               <div className="flex items-center">
                 <CheckCircle className="h-8 w-8 text-green-600 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{scanResults.lowCount}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {lowCount}
+                  </p>
                   <p className="text-sm text-gray-600">Low</p>
                 </div>
               </div>
@@ -334,8 +484,12 @@ function ScanResultsContent() {
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">AI Security Analysis</h2>
-                  <p className="text-purple-100 text-sm">Powered by advanced threat intelligence</p>
+                  <h2 className="text-xl font-bold text-white">
+                    AI Security Analysis
+                  </h2>
+                  <p className="text-purple-100 text-sm">
+                    Powered by advanced threat intelligence
+                  </p>
                 </div>
               </div>
             </div>
@@ -346,7 +500,9 @@ function ScanResultsContent() {
                 <div className="flex items-center justify-center py-8">
                   <div className="flex items-center text-purple-600">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mr-3"></div>
-                    <span className="text-lg font-medium">Analyzing security patterns with AI...</span>
+                    <span className="text-lg font-medium">
+                      Analyzing security patterns with AI...
+                    </span>
                   </div>
                 </div>
               )}
@@ -355,7 +511,9 @@ function ScanResultsContent() {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                   <div className="flex items-center">
                     <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
-                    <span className="text-red-800 font-medium">Analysis Error</span>
+                    <span className="text-red-800 font-medium">
+                      Analysis Error
+                    </span>
                   </div>
                   <p className="text-red-700 mt-1">{aiError}</p>
                 </div>
@@ -367,7 +525,9 @@ function ScanResultsContent() {
                   <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex items-center mb-4">
                       <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
-                      <span className="font-semibold text-gray-900">Security Assessment</span>
+                      <span className="font-semibold text-gray-900">
+                        Security Assessment
+                      </span>
                     </div>
                     <div className="prose prose-gray max-w-none">
                       <pre className="whitespace-pre-wrap text-gray-700 leading-relaxed font-sans text-sm">
@@ -386,10 +546,10 @@ function ScanResultsContent() {
                             {totalIssues === 0
                               ? "Low"
                               : criticalCount > 0
-                                ? "Critical"
-                                : highCount > 0
-                                  ? "High"
-                                  : "Medium"}
+                              ? "Critical"
+                              : highCount > 0
+                              ? "High"
+                              : "Medium"}
                           </p>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
@@ -401,7 +561,9 @@ function ScanResultsContent() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-600">Total Issues</p>
-                          <p className="text-lg font-bold text-gray-900">{totalIssues}</p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {totalIssues}
+                          </p>
                         </div>
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                           <FileText className="h-4 w-4 text-blue-600" />
@@ -412,10 +574,48 @@ function ScanResultsContent() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-600">Scan Status</p>
-                          <p className="text-lg font-bold text-green-600">Complete</p>
+                          <p
+                            className={`text-lg font-bold ${
+                              scanData.status === "running"
+                                ? "text-yellow-600"
+                                : scanData.status === "completed"
+                                ? "text-green-600"
+                                : scanData.status === "partial"
+                                ? "text-orange-600"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {scanData.status === "running"
+                              ? "Running..."
+                              : scanData.status === "completed"
+                              ? "Complete"
+                              : scanData.status === "partial"
+                              ? "Partial"
+                              : "Complete"}
+                          </p>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            scanData.status === "running"
+                              ? "bg-yellow-100"
+                              : scanData.status === "completed"
+                              ? "bg-green-100"
+                              : scanData.status === "partial"
+                              ? "bg-orange-100"
+                              : "bg-green-100"
+                          }`}
+                        >
+                          {scanData.status === "running" ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                          ) : (
+                            <CheckCircle
+                              className={`h-4 w-4 ${
+                                scanData.status === "partial"
+                                  ? "text-orange-600"
+                                  : "text-green-600"
+                              }`}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -426,52 +626,30 @@ function ScanResultsContent() {
           </div>
         </div>
 
-        {/* Results Table */}
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Detailed Findings</h3>
-            <p className="text-sm text-gray-600">Complete list of security issues found during the scan</p>
+        {/* Running Scan Notice */}
+        {scanData.status === "running" && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-3"></div>
+              <div>
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Scan in Progress
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Results will update automatically as the scan progresses.
+                  {scanData.progress &&
+                    ` Progress: ${scanData.progress.current}/${scanData.progress.total} phases completed.`}
+                </p>
+              </div>
+            </div>
           </div>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Issue
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pattern Matched
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Severity
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {scanResults.issues.map((issue) => (
-                <tr key={issue.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{issue.issue}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded max-w-md truncate">
-                      {issue.pattern}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getSeverityIcon(issue.severity)}
-                      <span
-                        className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadge(issue.severity)}`}
-                      >
-                        {issue.severity}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        )}
+
+        {/* Enhanced Results Display */}
+        <EnhancedResultsDisplay
+          results={enhancedResults}
+          isLoading={scanData.status === "running"}
+        />
 
         {/* Download Report */}
         <div className="mt-8 flex justify-center">
@@ -484,13 +662,19 @@ function ScanResultsContent() {
               <Download className="h-5 w-5 mr-2" />
               Download Report
               <svg
-                className={`ml-2 w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
+                className={`ml-2 w-4 h-4 transition-transform duration-200 ${
+                  showDropdown ? "rotate-180" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </Button>
 
@@ -501,20 +685,27 @@ function ScanResultsContent() {
                     className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center"
                     onClick={() => {
                       // JSON download
-                      const dataStr = JSON.stringify(scanData, null, 2)
-                      const blob = new Blob([dataStr], { type: "application/json" })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement("a")
-                      a.href = url
-                      a.download = `ThreatPeek-report-${scanId || "scan"}.json`
-                      document.body.appendChild(a)
-                      a.click()
-                      document.body.removeChild(a)
-                      URL.revokeObjectURL(url)
-                      setShowDropdown(false)
+                      const dataStr = JSON.stringify(scanData, null, 2);
+                      const blob = new Blob([dataStr], {
+                        type: "application/json",
+                      });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `ThreatPeek-report-${scanId || "scan"}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      setShowDropdown(false);
                     }}
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4 mr-3 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -524,7 +715,9 @@ function ScanResultsContent() {
                     </svg>
                     <div>
                       <div className="font-medium">Download as JSON</div>
-                      <div className="text-xs text-gray-500">Raw data format</div>
+                      <div className="text-xs text-gray-500">
+                        Raw data format
+                      </div>
                     </div>
                   </button>
 
@@ -534,47 +727,63 @@ function ScanResultsContent() {
                     className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center"
                     onClick={() => {
                       // Simple text report download instead of PDF to avoid jsPDF dependency
-                      let report = `ThreatPeek SECURITY SCAN REPORT\n`
-                      report += `${"=".repeat(40)}\n\n`
-                      report += `Scanned URL: ${scannedUrl}\n`
-                      report += `Scan Date: ${new Date().toLocaleDateString()}\n`
-                      report += `Total Issues: ${totalIssues}\n\n`
+                      let report = `ThreatPeek SECURITY SCAN REPORT\n`;
+                      report += `${"=".repeat(40)}\n\n`;
+                      report += `Scanned URL: ${scannedUrl}\n`;
+                      report += `Scan Date: ${new Date().toLocaleDateString()}\n`;
+                      report += `Total Issues: ${totalIssues}\n\n`;
 
-                      report += `SUMMARY:\n`
-                      report += `- Critical: ${scanResults.criticalCount}\n`
-                      report += `- High: ${scanResults.highCount}\n`
-                      report += `- Medium: ${scanResults.mediumCount}\n`
-                      report += `- Low: ${scanResults.lowCount}\n\n`
+                      report += `SUMMARY:\n`;
+                      report += `- Critical: ${criticalCount}\n`;
+                      report += `- High: ${highCount}\n`;
+                      report += `- Medium: ${mediumCount}\n`;
+                      report += `- Low: ${lowCount}\n\n`;
 
                       if (aiSummary) {
-                        report += `AI ANALYSIS:\n`
-                        report += `${"-".repeat(20)}\n`
-                        report += `${aiSummary}\n\n`
+                        report += `AI ANALYSIS:\n`;
+                        report += `${"-".repeat(20)}\n`;
+                        report += `${aiSummary}\n\n`;
                       }
 
-                      report += `DETAILED FINDINGS:\n`
-                      report += `${"-".repeat(20)}\n\n`
+                      report += `DETAILED FINDINGS:\n`;
+                      report += `${"-".repeat(20)}\n\n`;
 
-                      scanResults.issues.forEach((issue, index) => {
-                        report += `${index + 1}. ${issue.issue}\n`
-                        report += `   Severity: ${issue.severity}\n`
-                        report += `   Pattern: ${issue.pattern}\n`
-                        report += `   File: ${issue.file || "N/A"}\n\n`
-                      })
+                      allFindings.forEach((finding, index) => {
+                        report += `${index + 1}. ${finding.title}\n`;
+                        report += `   Severity: ${
+                          finding.severity.charAt(0).toUpperCase() +
+                          finding.severity.slice(1)
+                        }\n`;
+                        report += `   Category: ${finding.category}\n`;
+                        report += `   Pattern: ${
+                          finding.evidence.pattern || "N/A"
+                        }\n`;
+                        report += `   File: ${
+                          finding.location.file || finding.location.url || "N/A"
+                        }\n`;
+                        report += `   Confidence: ${Math.round(
+                          finding.confidence * 100
+                        )}%\n\n`;
+                      });
 
-                      const blob = new Blob([report], { type: "text/plain" })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement("a")
-                      a.href = url
-                      a.download = `ThreatPeek-report-${scanId || "scan"}.txt`
-                      document.body.appendChild(a)
-                      a.click()
-                      document.body.removeChild(a)
-                      URL.revokeObjectURL(url)
-                      setShowDropdown(false)
+                      const blob = new Blob([report], { type: "text/plain" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `ThreatPeek-report-${scanId || "scan"}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      setShowDropdown(false);
                     }}
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4 mr-3 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -584,7 +793,9 @@ function ScanResultsContent() {
                     </svg>
                     <div>
                       <div className="font-medium">Download as Text Report</div>
-                      <div className="text-xs text-gray-500">Formatted summary with AI analysis</div>
+                      <div className="text-xs text-gray-500">
+                        Formatted summary with AI analysis
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -594,9 +805,9 @@ function ScanResultsContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function ScanResults() {
-  return <ScanResultsContent />
+  return <ScanResultsContent />;
 }

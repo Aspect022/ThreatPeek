@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Shield } from "lucide-react"
-import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Shield } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { normalizeScanData, extractAllFindings } from "@/lib/scan-utils";
 
 // Type for scan result
 type ScanResult = {
@@ -13,76 +14,99 @@ type ScanResult = {
   file?: string;
 };
 
-export default function ScanResultPage({ params }: { params: { scanId: string } }) {
+export default function ScanResultPage({
+  params,
+}: {
+  params: { scanId: string };
+}) {
   const scanId = params.scanId;
-  const [scanData, setScanData] = useState<{ results: ScanResult[] }>({ results: [] })
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [aiSummary, setAiSummary] = useState<string | null>(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState<string | null>(null)
+  const [scanData, setScanData] = useState<{ results: ScanResult[] }>({
+    results: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchScanResults = async () => {
       if (!scanId) {
-        setError("No scan ID provided")
-        setIsLoading(false)
-        return
+        setError("No scan ID provided");
+        setIsLoading(false);
+        return;
       }
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!
-        const response = await fetch(`${apiBase}/scan/${scanId}`)
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!;
+        const response = await fetch(
+          `${apiBase}/enhanced-scan/${scanId}/results`
+        );
         if (!response.ok) {
-          throw new Error("Failed to fetch scan results")
+          throw new Error("Failed to fetch scan results");
         }
-        const data = await response.json()
-        setScanData(data)
+        const data = await response.json();
+        setScanData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(err instanceof Error ? err.message : String(err));
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    fetchScanResults()
-  }, [scanId])
+    };
+    fetchScanResults();
+  }, [scanId]);
 
   useEffect(() => {
-    if (!scanData || !scanData.results) return
-    setAiLoading(true)
+    if (!scanData || !scanData.results) return;
+    setAiLoading(true);
     setTimeout(() => {
-      const totalIssues = scanData.results.length
-      const criticalIssues = scanData.results.filter((r: ScanResult) => r.severity === "critical").length
-      const highIssues = scanData.results.filter((r: ScanResult) => r.severity === "high").length
-      let summary = `Security Analysis Summary:\n\n`
+      // Use the normalization utility
+      const normalizedData = normalizeScanData(scanData);
+      const allFindings = extractAllFindings(normalizedData);
+
+      const totalIssues = allFindings.length;
+      const criticalIssues = allFindings.filter(
+        (f: any) => f.severity === "critical"
+      ).length;
+      const highIssues = allFindings.filter(
+        (f: any) => f.severity === "high"
+      ).length;
+      let summary = `Security Analysis Summary:\n\n`;
       if (criticalIssues > 0) {
-        summary += `🚨 CRITICAL: Found ${criticalIssues} critical security issue${criticalIssues > 1 ? "s" : ""} that require immediate attention. These expose sensitive credentials that could lead to data breaches.\n\n`
+        summary += `🚨 CRITICAL: Found ${criticalIssues} critical security issue${
+          criticalIssues > 1 ? "s" : ""
+        } that require immediate attention. These expose sensitive credentials that could lead to data breaches.\n\n`;
       }
       if (highIssues > 0) {
-        summary += `⚠️ HIGH RISK: Detected ${highIssues} high-risk vulnerability${highIssues > 1 ? "ies" : "y"} that should be addressed promptly to prevent potential security compromises.\n\n`
+        summary += `⚠️ HIGH RISK: Detected ${highIssues} high-risk vulnerability${
+          highIssues > 1 ? "ies" : "y"
+        } that should be addressed promptly to prevent potential security compromises.\n\n`;
       }
-      summary += `📊 RECOMMENDATION: Prioritize fixing critical and high-severity issues first. Consider implementing environment variables for sensitive data and regular security audits.`
-      setAiSummary(summary)
-      setAiLoading(false)
-    }, 2000)
-  }, [scanData])
+      summary += `📊 RECOMMENDATION: Prioritize fixing critical and high-severity issues first. Consider implementing environment variables for sensitive data and regular security audits.`;
+      setAiSummary(summary);
+      setAiLoading(false);
+    }, 2000);
+  }, [scanData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
       }
     }
     if (showDropdown) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     } else {
-      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [showDropdown])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showDropdown]);
 
   if (isLoading) {
     return (
@@ -92,7 +116,7 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
           <p className="text-xl text-gray-600">Loading scan results...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -108,22 +132,29 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   const processedResults = scanData.results.map((result, index) => ({
     id: index + 1,
     issue: result.issue,
     pattern: result.matches?.[0] || "Pattern matched",
-    severity: result.severity.charAt(0).toUpperCase() + result.severity.slice(1),
+    severity:
+      result.severity.charAt(0).toUpperCase() + result.severity.slice(1),
     file: result.file,
     matchCount: result.matches?.length || 1,
-  }))
+  }));
 
-  const criticalCount = processedResults.filter((r) => r.severity === "Critical").length
-  const highCount = processedResults.filter((r) => r.severity === "High").length
-  const mediumCount = processedResults.filter((r) => r.severity === "Medium").length
-  const lowCount = processedResults.filter((r) => r.severity === "Low").length
+  const criticalCount = processedResults.filter(
+    (r) => r.severity === "Critical"
+  ).length;
+  const highCount = processedResults.filter(
+    (r) => r.severity === "High"
+  ).length;
+  const mediumCount = processedResults.filter(
+    (r) => r.severity === "Medium"
+  ).length;
+  const lowCount = processedResults.filter((r) => r.severity === "Low").length;
 
   const scanResults = {
     criticalCount,
@@ -131,24 +162,28 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
     mediumCount,
     lowCount,
     issues: processedResults,
-  }
+  };
 
   const getSeverityBadge = (severity: string) => {
     switch (severity.toLowerCase()) {
       case "critical":
-        return "bg-red-100 text-red-800 border border-red-200"
+        return "bg-red-100 text-red-800 border border-red-200";
       case "high":
-        return "bg-red-100 text-red-800 border border-red-200"
+        return "bg-red-100 text-red-800 border border-red-200";
       case "medium":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200"
+        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
       case "low":
-        return "bg-green-100 text-green-800 border border-green-200"
+        return "bg-green-100 text-green-800 border border-green-200";
       default:
-        return "bg-gray-100 text-gray-800 border border-gray-200"
+        return "bg-gray-100 text-gray-800 border border-gray-200";
     }
-  }
+  };
 
-  const totalIssues = scanResults.criticalCount + scanResults.highCount + scanResults.mediumCount + scanResults.lowCount
+  const totalIssues =
+    scanResults.criticalCount +
+    scanResults.highCount +
+    scanResults.mediumCount +
+    scanResults.lowCount;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -158,7 +193,9 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
           <div className="flex items-center h-16">
             <Link href="/" className="flex items-center">
               <Shield className="h-8 w-8 text-blue-600 mr-2" />
-              <span className="text-gray-900 text-xl font-bold">ThreatPeek</span>
+              <span className="text-gray-900 text-xl font-bold">
+                ThreatPeek
+              </span>
             </Link>
           </div>
         </div>
@@ -168,24 +205,36 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Scan Results</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Scan Results
+          </h1>
           <p className="text-gray-600 mb-4">Scan ID: {scanId}</p>
 
           {/* Summary */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
             <p className="text-lg">
-              <span className="font-bold text-gray-900">Found {totalIssues} issues:</span>
+              <span className="font-bold text-gray-900">
+                Found {totalIssues} issues:
+              </span>
               {scanResults.criticalCount > 0 && (
-                <span className="ml-2 font-bold text-red-600">{scanResults.criticalCount} Critical</span>
+                <span className="ml-2 font-bold text-red-600">
+                  {scanResults.criticalCount} Critical
+                </span>
               )}
               {scanResults.highCount > 0 && (
-                <span className="ml-2 font-bold text-red-600">{scanResults.highCount} High</span>
+                <span className="ml-2 font-bold text-red-600">
+                  {scanResults.highCount} High
+                </span>
               )}
               {scanResults.mediumCount > 0 && (
-                <span className="ml-2 font-bold text-yellow-600">{scanResults.mediumCount} Medium</span>
+                <span className="ml-2 font-bold text-yellow-600">
+                  {scanResults.mediumCount} Medium
+                </span>
               )}
               {scanResults.lowCount > 0 && (
-                <span className="ml-2 font-bold text-green-600">{scanResults.lowCount} Low</span>
+                <span className="ml-2 font-bold text-green-600">
+                  {scanResults.lowCount} Low
+                </span>
               )}
             </p>
           </div>
@@ -210,14 +259,20 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
               {scanResults.issues.map((issue) => (
                 <tr key={issue.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{issue.issue}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {issue.issue}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">{issue.pattern}</div>
+                    <div className="text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded">
+                      {issue.pattern}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadge(issue.severity)}`}
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSeverityBadge(
+                        issue.severity
+                      )}`}
                     >
                       {issue.severity}
                     </span>
@@ -240,7 +295,11 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
                 <span>Analyzing security patterns...</span>
               </div>
             )}
-            {aiError && <div className="text-red-600 bg-red-50 border border-red-200 rounded-md p-3">{aiError}</div>}
+            {aiError && (
+              <div className="text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+                {aiError}
+              </div>
+            )}
             {aiSummary && (
               <div className="text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50 border border-gray-200 rounded-md p-4">
                 <pre className="whitespace-pre-wrap">{aiSummary}</pre>
@@ -258,13 +317,19 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
             >
               Download Report
               <svg
-                className={`ml-2 w-4 h-4 transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
+                className={`ml-2 w-4 h-4 transition-transform duration-200 ${
+                  showDropdown ? "rotate-180" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </Button>
 
@@ -275,20 +340,27 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
                     className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center"
                     onClick={() => {
                       // JSON download
-                      const dataStr = JSON.stringify(scanData, null, 2)
-                      const blob = new Blob([dataStr], { type: "application/json" })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement("a")
-                      a.href = url
-                      a.download = `ThreatPeek-report-${scanId || "scan"}.json`
-                      document.body.appendChild(a)
-                      a.click()
-                      document.body.removeChild(a)
-                      URL.revokeObjectURL(url)
-                      setShowDropdown(false)
+                      const dataStr = JSON.stringify(scanData, null, 2);
+                      const blob = new Blob([dataStr], {
+                        type: "application/json",
+                      });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `ThreatPeek-report-${scanId || "scan"}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      setShowDropdown(false);
                     }}
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4 mr-3 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -298,7 +370,9 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
                     </svg>
                     <div>
                       <div className="font-medium">Download as JSON</div>
-                      <div className="text-xs text-gray-500">Raw data format</div>
+                      <div className="text-xs text-gray-500">
+                        Raw data format
+                      </div>
                     </div>
                   </button>
 
@@ -308,41 +382,46 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
                     className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center"
                     onClick={() => {
                       // Simple text report download instead of PDF to avoid jsPDF dependency
-                      let report = `ThreatPeek SECURITY SCAN REPORT\n`
-                      report += `${"=".repeat(40)}\n\n`
-                      report += `Scan ID: ${scanId}\n`
-                      report += `Scan Date: ${new Date().toLocaleDateString()}\n`
-                      report += `Total Issues: ${totalIssues}\n\n`
+                      let report = `ThreatPeek SECURITY SCAN REPORT\n`;
+                      report += `${"=".repeat(40)}\n\n`;
+                      report += `Scan ID: ${scanId}\n`;
+                      report += `Scan Date: ${new Date().toLocaleDateString()}\n`;
+                      report += `Total Issues: ${totalIssues}\n\n`;
 
-                      report += `SUMMARY:\n`
-                      report += `- Critical: ${scanResults.criticalCount}\n`
-                      report += `- High: ${scanResults.highCount}\n`
-                      report += `- Medium: ${scanResults.mediumCount}\n`
-                      report += `- Low: ${scanResults.lowCount}\n\n`
+                      report += `SUMMARY:\n`;
+                      report += `- Critical: ${scanResults.criticalCount}\n`;
+                      report += `- High: ${scanResults.highCount}\n`;
+                      report += `- Medium: ${scanResults.mediumCount}\n`;
+                      report += `- Low: ${scanResults.lowCount}\n\n`;
 
-                      report += `DETAILED FINDINGS:\n`
-                      report += `${"-".repeat(20)}\n\n`
+                      report += `DETAILED FINDINGS:\n`;
+                      report += `${"-".repeat(20)}\n\n`;
 
                       scanResults.issues.forEach((issue, index) => {
-                        report += `${index + 1}. ${issue.issue}\n`
-                        report += `   Severity: ${issue.severity}\n`
-                        report += `   Pattern: ${issue.pattern}\n`
-                        report += `   File: ${issue.file || "N/A"}\n\n`
-                      })
+                        report += `${index + 1}. ${issue.issue}\n`;
+                        report += `   Severity: ${issue.severity}\n`;
+                        report += `   Pattern: ${issue.pattern}\n`;
+                        report += `   File: ${issue.file || "N/A"}\n\n`;
+                      });
 
-                      const blob = new Blob([report], { type: "text/plain" })
-                      const url = URL.createObjectURL(blob)
-                      const a = document.createElement("a")
-                      a.href = url
-                      a.download = `ThreatPeek-report-${scanId || "scan"}.txt`
-                      document.body.appendChild(a)
-                      a.click()
-                      document.body.removeChild(a)
-                      URL.revokeObjectURL(url)
-                      setShowDropdown(false)
+                      const blob = new Blob([report], { type: "text/plain" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `ThreatPeek-report-${scanId || "scan"}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      setShowDropdown(false);
                     }}
                   >
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-4 h-4 mr-3 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -352,7 +431,9 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
                     </svg>
                     <div>
                       <div className="font-medium">Download as Text Report</div>
-                      <div className="text-xs text-gray-500">Formatted summary</div>
+                      <div className="text-xs text-gray-500">
+                        Formatted summary
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -362,5 +443,5 @@ export default function ScanResultPage({ params }: { params: { scanId: string } 
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

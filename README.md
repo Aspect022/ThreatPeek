@@ -1,160 +1,112 @@
-# ThreatPeek
+# ThreatPeek - Security Scanner
 
+A comprehensive web security scanning tool that detects secrets, vulnerabilities, and security misconfigurations.
 
+## 🚀 Features
 
-AI-Powered Threat Detection at a Glance
+- **Multi-type Scanning**: URL scanning, repository analysis, file detection
+- **AI-Powered Analysis**: Intelligent security assessment using Gemini AI
+- **Real-time Results**: Live polling with progress indicators
+- **Enhanced Reporting**: Detailed findings with confidence scores
+- **Export Options**: JSON and text report downloads
 
-ThreatPeek is an advanced, AI-powered security scanner designed to detect exposed API keys, secrets, and other vulnerabilities in web applications. It provides instant, actionable insights to help developers and security teams protect their digital assets.
+## 🏗️ Architecture
 
----
+- **Frontend**: Next.js 14 with TypeScript, deployed on Vercel
+- **Backend**: Node.js with Express, deployed on Render
+- **AI Integration**: Google Gemini API for security analysis
 
-## ✨ Features
-
-- **Smart Detection**: Utilizes advanced pattern matching and an improved regex engine to identify sensitive information such as OpenAI, Stripe, AWS, Google, and GitHub API keys; database credentials; and private keys with high accuracy and minimal false positives.
-- **AI-Powered Analysis**: Leverages the Google Gemini API to deliver intelligent security assessments, providing contextual insights, potential risks, and actionable mitigation steps.
-- **Comprehensive Scanning**: Crawls main HTML content and all linked JavaScript files to uncover hidden vulnerabilities.
-- **Detailed Reports**: Generates security reports with severity levels (Critical, High, Medium, Low) and prioritized recommendations. Reports are available in JSON or plain text format.
-- **User-Friendly Interface**: Clean, intuitive web interface for easy URL submission and result viewing.
-- **SEO & PWA Ready**: Includes metadata, Open Graph tags, `robots.txt`, and a web manifest for improved search visibility and Progressive Web App capabilities.
-
----
-
-## 🚀 Tech Stack
-
-**Frontend:**
-- Next.js (App Router & Server Components)
-- React
-- Tailwind CSS
-- shadcn/ui (Radix UI & Tailwind components)
-- Lucide React (icons)
-
-**Backend:**
-- Node.js & Express.js
-- Axios (HTTP client)
-- dotenv (env vars)
-- helmet (security headers)
-- cors (CORS)
-- express-rate-limit (rate limiting)
-
-**AI Integration:**
-- Google Gemini API
-
----
-
-## 📂 Project Structure
-
-```
-ThreatPeek/
-├── Backend/
-│   ├── controllers/
-│   │   ├── improvedScanController.js   # Advanced detection logic
-│   │   └── scanController.js           # Original detection logic
-│   ├── routes/
-│   │   └── scan.js                     # Scan API endpoint
-│   ├── utils/
-│   │   ├── improvedRegexPatterns.js    # Enhanced regex patterns
-│   │   └── regexPatterns.js            # Base regex patterns
-│   └── server.js                       # Express server entrypoint
-├── Frontend/
-│   ├── app/
-│   │   ├── api/summary/route.ts        # AI summary endpoint
-│   │   ├── layout.tsx                  # Root layout
-│   │   ├── page.tsx                    # Landing page
-│   │   ├── scan/[scanId]/page.tsx      # Scan results (dynamic)
-│   │   ├── scan/page.tsx               # Scan results (static)
-│   │   ├── privacy/page.tsx            # Privacy policy
-│   │   └── terms/page.tsx              # Terms of service
-│   ├── components/                     # Custom UI components
-│   ├── hooks/                          # Custom React hooks
-│   ├── lib/                            # Utility functions
-│   ├── public/                         # Static assets & SEO files
-│   ├── styles/                         # Global styles
-│   ├── tailwind.config.ts              # Tailwind config
-│   └── tsconfig.json                   # TypeScript config
-└── .env.example                        # Example environment vars
-```  
-
----
-
-## 🏁 Getting Started
+## 🛠️ Local Development
 
 ### Prerequisites
 
-- **Node.js** v18+ (LTS)
-- **npm** or **Yarn**
-- **Git**
+- Node.js 18+
+- npm or yarn
+- Gemini API key (get from [Google AI Studio](https://ai.google.dev/))
 
-### 1. Clone the Repo
+### Setup
 
-```bash
-git clone https://github.com/Aspect022/ThreatPeek.git
-cd ThreatPeek
-```
+1. **Clone the repository**
 
-### 2. Install Dependencies
+   ```bash
+   git clone <your-repo-url>
+   cd ThreatPeek
+   ```
 
-```bash
-# Backend
-git checkout main && cd Backend && npm install
-# Frontend
-cd ../Frontend && npm install
-```  
+2. **Backend Setup**
 
-### 3. Configure Environment Variables
+   ```bash
+   cd Backend
+   npm install
+   cp .env.example .env
+   # Edit .env with your configuration
+   npm start
+   ```
 
-#### Backend (`Backend/.env`)
+3. **Frontend Setup**
+
+   ```bash
+   cd Frontend
+   npm install
+   cp .env.example .env.local
+   # Add your GEMINI_API_KEY to .env.local
+   npm run dev
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend: http://localhost:3001
+
+## 🚀 Deployment
+
+### Backend (Render)
+
+1. Connect your GitHub repository to Render
+2. Create a new Web Service
+3. Set environment variables:
+   - `NODE_ENV=production`
+   - `FRONTEND_URL=https://your-frontend-domain.vercel.app`
+
+### Frontend (Vercel)
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables:
+   - `GEMINI_API_KEY=your_gemini_api_key`
+   - `NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.onrender.com/api`
+
+## 🔒 Security
+
+- API keys are properly secured and not exposed to client
+- CORS configured for production domains
+- Input validation and sanitization
+- Rate limiting implemented
+- Error messages sanitized in production
+
+## 📝 Environment Variables
+
+### Backend (.env)
+
 ```
 PORT=3001
-FRONTEND_URL=http://localhost:3000
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+NODE_ENV=production
+FRONTEND_URL=https://your-frontend-domain.vercel.app
 ```
 
-#### Frontend (`Frontend/.env.local`)
+### Frontend (.env.local)
+
 ```
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
+GEMINI_API_KEY=your_gemini_api_key_here
+NEXT_PUBLIC_API_BASE_URL=https://your-backend-domain.onrender.com/api
 ```
-
-### 4. Run the App
-
-```bash
-# Start Backend
-cd Backend && npm start
-# Start Frontend
-gnpm run dev # from Frontend folder
-```  
-
-Open [http://localhost:3000](http://localhost:3000) to view ThreatPeek.
-
----
-
-## 💡 Usage
-
-1. **Enter URL** on the landing page.
-2. Click **Scan Now** to initiate the scan.
-3. Review **Results** by severity and actionable AI summary.
-4. **Download** the full report in JSON or plain text.
-
----
 
 ## 🤝 Contributing
 
-1. Fork the repo 👉 `gh fork https://github.com/Aspect022/ThreatPeek`
-2. Clone your fork and create a branch: `git checkout -b feature/YourFeature`
-3. Implement changes, commit, and push.
-4. Open a Pull Request with a clear description.
-
-Please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
-
----
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## 📧 Contact
-
-Questions or feedback? Open an issue or reach out to the maintainers at [https://github.com/Aspect022/ThreatPeek/issues](https://github.com/Aspect022/ThreatPeek/issues).
-
-Made with 💙 by Jayesh RL
+MIT License - see LICENSE file for details

@@ -1,0 +1,21 @@
+{
+  "name": "threatpeek",
+  "version": "1.0.0",
+  "description": "Security scanning tool with AI analysis",
+  "scripts": {
+    "dev:backend": "cd Backend && npm run dev",
+    "dev:frontend": "cd Frontend && npm run dev",
+    "start:backend": "cd Backend && npm start",
+    "start:frontend": "cd Frontend && npm start",
+    "build:frontend": "cd Frontend && npm run build",
+    "install:all": "cd Backend && npm install && cd ../Frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "postinstall": "npm run install:all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
