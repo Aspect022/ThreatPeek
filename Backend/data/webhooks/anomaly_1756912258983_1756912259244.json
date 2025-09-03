@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-09-03T15:10:58.983Z",
+  "anomaly": "log_anomaly_detected",
+  "severity": "critical",
+  "source": "log_monitor",
+  "details": {
+    "logType": "anomaly",
+    "message": "Test anomaly for debugging n8n integration",
+    "logDetails": {
+      "source": "debug-test",
+      "description": "This is a test anomaly to verify n8n integration is working"
+    },
+    "detectionSource": "log_file_monitoring"
+  },
+  "receivedAt": "2025-09-03T15:10:59.244Z",
+  "type": "anomaly"
+}

@@ -124,4 +124,3 @@ exports.getScanResults = async (req, res) => {
   }
   res.json(scanData);
 };
-

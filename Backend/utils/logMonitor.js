@@ -34,16 +34,38 @@ class LogMonitor {
             console.log('[LOG_MONITOR] Created log file');
         }
 
-        // Get initial file size
+        // Process existing content first
+        console.log('[LOG_MONITOR] Processing existing log content...');
+        this.processExistingContent();
+
+        // Get current file size for future monitoring
         const stats = fs.statSync(this.logFilePath);
         this.lastPosition = stats.size;
+        console.log(`[LOG_MONITOR] Set lastPosition to current file size: ${this.lastPosition}`);
 
-        // Start watching the file
+        // Start watching the file for new entries
         this.watchInterval = setInterval(() => {
             this.checkForNewEntries();
         }, 1000); // Check every second
 
         console.log('[LOG_MONITOR] Log monitoring started');
+    }
+
+    /**
+     * Process existing content in the log file when monitoring starts
+     */
+    async processExistingContent() {
+        try {
+            const content = fs.readFileSync(this.logFilePath, 'utf8');
+            if (content.trim() !== '') {
+                console.log(`[LOG_MONITOR] Found existing content of ${content.length} characters`);
+                await this.processNewEntries(content);
+            } else {
+                console.log('[LOG_MONITOR] No existing content to process');
+            }
+        } catch (error) {
+            console.error('[LOG_MONITOR] Error processing existing content:', error.message);
+        }
     }
 
     /**
@@ -65,6 +87,7 @@ class LogMonitor {
         try {
             // Check if file exists
             if (!fs.existsSync(this.logFilePath)) {
+                console.log('[LOG_MONITOR] Log file does not exist');
                 return;
             }
 
@@ -72,21 +95,25 @@ class LogMonitor {
             
             // If file was truncated or rotated, reset position
             if (stats.size < this.lastPosition) {
+                console.log(`[LOG_MONITOR] Log file was truncated or rotated. Resetting position from ${this.lastPosition} to 0`);
                 this.lastPosition = 0;
             }
 
             // If there are new entries
             if (stats.size > this.lastPosition) {
+                console.log(`[LOG_MONITOR] Detected new content. Size: ${stats.size}, Last position: ${this.lastPosition}`);
                 const buffer = Buffer.alloc(stats.size - this.lastPosition);
                 const fd = fs.openSync(this.logFilePath, 'r');
                 fs.readSync(fd, buffer, 0, buffer.length, this.lastPosition);
                 fs.closeSync(fd);
 
                 const newContent = buffer.toString('utf8');
+                console.log(`[LOG_MONITOR] New content: ${newContent}`);
                 await this.processNewEntries(newContent);
 
                 // Update last position
                 this.lastPosition = stats.size;
+                console.log(`[LOG_MONITOR] Updated last position to: ${this.lastPosition}`);
             }
         } catch (error) {
             console.error('[LOG_MONITOR] Error checking for new log entries:', error.message);
@@ -98,16 +125,22 @@ class LogMonitor {
      * @param {string} content - New content from log file
      */
     async processNewEntries(content) {
+        console.log(`[LOG_MONITOR] Processing new entries: ${content}`);
         // Split content into lines
         const lines = content.split('\n').filter(line => line.trim() !== '');
 
         for (const line of lines) {
+            console.log(`[LOG_MONITOR] Processing line: ${line}`);
             try {
                 const logEntry = JSON.parse(line);
+                console.log(`[LOG_MONITOR] Parsed log entry:`, logEntry);
                 
                 // Check if this is an anomaly log entry
                 if (logEntry.type === 'anomaly') {
+                    console.log('[LOG_MONITOR] Found anomaly entry, handling it');
                     await this.handleAnomalyLog(logEntry);
+                } else {
+                    console.log(`[LOG_MONITOR] Entry is not an anomaly (type: ${logEntry.type})`);
                 }
             } catch (error) {
                 // Skip lines that aren't valid JSON
@@ -138,18 +171,24 @@ class LogMonitor {
                 }
             };
 
+            console.log('[LOG_MONITOR] Prepared anomaly notification:', anomalyNotification);
+
             // Save to webhook storage
-            await saveAnomalyNotification(anomalyNotification);
+            const savedPath = await saveAnomalyNotification(anomalyNotification);
+            console.log('[LOG_MONITOR] Saved anomaly notification to:', savedPath);
 
             // Forward to n8n
-            await forwardToN8n('anomaly-detected', anomalyNotification, {
+            console.log('[LOG_MONITOR] Forwarding to n8n...');
+            const result = await forwardToN8n('anomaly-detected', anomalyNotification, {
                 'x-event-type': 'log-anomaly',
                 'x-source': 'log-monitor'
             });
-
+            
+            console.log('[LOG_MONITOR] n8n forwarding result:', result);
             console.log('[LOG_MONITOR] Anomaly alert sent for log entry');
         } catch (error) {
             console.error('[LOG_MONITOR] Error handling anomaly log entry:', error.message);
+            console.error('[LOG_MONITOR] Error stack:', error.stack);
         }
     }
 

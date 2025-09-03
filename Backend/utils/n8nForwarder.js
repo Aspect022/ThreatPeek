@@ -14,6 +14,9 @@ const axios = require('axios');
 async function forwardToN8n(eventType, payload, headers = {}) {
   const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
   
+  console.log(`[N8N] Attempting to forward ${eventType} event to n8n`);
+  console.log(`[N8N] n8nWebhookUrl from env: ${n8nWebhookUrl}`);
+  
   // If no n8n webhook URL is configured, skip forwarding
   if (!n8nWebhookUrl) {
     console.log('[N8N] Skipping forwarding - N8N_WEBHOOK_URL not configured');
@@ -29,7 +32,10 @@ async function forwardToN8n(eventType, payload, headers = {}) {
       timestamp: new Date().toISOString()
     };
     
+    console.log(`[N8N] Prepared payload:`, JSON.stringify(n8nPayload, null, 2));
+    
     // Forward to n8n with a timeout
+    console.log(`[N8N] Sending POST request to: ${n8nWebhookUrl}`);
     const response = await axios.post(n8nWebhookUrl, n8nPayload, {
       timeout: 5000, // 5 second timeout
       headers: {
