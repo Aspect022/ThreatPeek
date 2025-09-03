@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hackathon Sandbox Demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      iframe {
+        width: 90%;
+        height: 500px;
+        border: 2px solid #333;
+        margin-top: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #sandboxContainer {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Mini VM Sandbox Demo</h1>
+    <p>Click the button below to enter the sandbox.</p>
+    <button onclick="enterSandbox()">Enter Sandbox</button>
+
+    <div id="sandboxContainer"></div>
+
+    <script>
+      const sandboxIPs = [
+        "http://172.31.74.84:7685", // WSL ttyd sandbox terminal - Updated to WSL IP
+      ];
+
+      function enterSandbox() {
+        const container = document.getElementById("sandboxContainer");
+        container.innerHTML = `<iframe src="${sandboxIPs[0]}"></iframe>`;
+      }
+    </script>
+  </body>
+</html>

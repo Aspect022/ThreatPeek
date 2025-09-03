@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-09-03T15:05:34.017Z",
+  "anomaly": "log_anomaly_detected",
+  "severity": "critical",
+  "source": "log_monitor",
+  "details": {
+    "logType": "anomaly",
+    "message": "Debug test anomaly",
+    "logDetails": {
+      "source": "debug-script",
+      "description": "This is a test entry for debugging the log monitor"
+    },
+    "detectionSource": "log_file_monitoring"
+  },
+  "receivedAt": "2025-09-03T19:04:45.668Z",
+  "type": "anomaly"
+}
