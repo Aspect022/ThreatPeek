@@ -1,0 +1,22 @@
+{
+  "scanId": "test-scan-123",
+  "status": "completed",
+  "results": {
+    "summary": {
+      "totalFindings": 5,
+      "criticalFindings": 1,
+      "highFindings": 2
+    },
+    "findings": [
+      {
+        "id": 1,
+        "type": "security_issue",
+        "severity": "critical",
+        "description": "Test critical finding"
+      }
+    ]
+  },
+  "timestamp": "2025-09-03T08:52:09.646Z",
+  "receivedAt": "2025-09-03T08:52:09.654Z",
+  "type": "scan_completion"
+}
