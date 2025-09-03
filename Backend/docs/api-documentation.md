@@ -659,6 +659,116 @@ For real-time updates, connect to the WebSocket endpoint:
 }
 ```
 
+## Webhook Endpoints
+
+ThreatPeek provides webhook endpoints for receiving notifications from external services. All webhooks are available under the `/api/webhook` path.
+
+### 1. Anomaly Detection Webhook
+
+Receive notifications when security anomalies are detected.
+
+**Endpoint:** `POST /api/webhook/anomaly-detected`
+
+**Request Body:**
+
+```json
+{
+  "timestamp": "2024-01-01T12:00:00.000Z",
+  "anomaly": "suspicious_api_call",
+  "severity": "high",
+  "source": "network_monitor",
+  "details": {
+    "ip": "192.168.1.100",
+    "endpoint": "/admin",
+    "userAgent": "curl/7.64.1"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Anomaly detection notification received and processed",
+  "receivedAt": "2024-01-01T12:00:00.000Z"
+}
+```
+
+### 2. Scan Completion Webhook
+
+Receive notifications when security scans are completed.
+
+**Endpoint:** `POST /api/webhook/scan-completed`
+
+**Request Body:**
+
+```json
+{
+  "scanId": "uuid-string",
+  "status": "completed",
+  "results": {
+    "summary": {
+      "totalFindings": 5,
+      "criticalCount": 1,
+      "highCount": 2,
+      "mediumCount": 2,
+      "lowCount": 0
+    },
+    "findings": [...]
+  },
+  "timestamp": "2024-01-01T12:05:00.000Z"
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Scan completion notification received and processed",
+  "receivedAt": "2024-01-01T12:05:00.000Z"
+}
+```
+
+### 3. Generic Webhook
+
+Generic endpoint for other types of notifications.
+
+**Endpoint:** `POST /api/webhook`
+
+**Headers:**
+- `X-Event-Type`: Type of event (required)
+
+**Request Body:**
+Any JSON payload
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Event {event-type} received and processed",
+  "receivedAt": "2024-01-01T12:00:00.000Z"
+}
+```
+
+### n8n Integration
+
+All webhook events received by ThreatPeek are automatically forwarded to configured n8n workflows when the `N8N_WEBHOOK_URL` environment variable is set. The forwarded data includes:
+
+- Event type (e.g., 'anomaly-detected', 'scan-completed')
+- Payload data
+- Original request headers (prefixed with 'x-original-')
+- Timestamp of the forwarding
+
+To configure n8n integration:
+1. Set up a webhook in your n8n instance
+2. Copy the webhook URL
+3. Add it to your `.env` file as `N8N_WEBHOOK_URL`
+
+If `N8N_WEBHOOK_URL` is not set, forwarding will be skipped silently.
+
 ## SDK Examples
 
 ### JavaScript/Node.js

@@ -18,6 +18,9 @@ const {
   sendScanCompletionNotification 
 } = require('../utils/notifications');
 
+// Import n8n forwarding utility
+const { forwardToN8n } = require('../utils/n8nForwarder');
+
 // POST /api/webhook/anomaly-detected - Receive anomaly detection notifications
 router.post('/anomaly-detected', async (req, res) => {
   try {
@@ -42,6 +45,9 @@ router.post('/anomaly-detected', async (req, res) => {
     if (severity === 'critical' || severity === 'high') {
       await sendCriticalAnomalyNotification(notification);
     }
+    
+    // Forward to n8n workflow
+    await forwardToN8n('anomaly-detected', notification, req.headers);
     
     // Respond with success
     res.status(200).json({
@@ -86,6 +92,9 @@ router.post('/scan-completed', async (req, res) => {
     // Send notifications for scan completion (will check for critical findings)
     await sendScanCompletionNotification(notification);
     
+    // Forward to n8n workflow
+    await forwardToN8n('scan-completed', notification, req.headers);
+    
     res.status(200).json({
       status: 'success',
       message: 'Scan completion notification received and processed',
@@ -111,6 +120,9 @@ router.post('/', async (req, res) => {
     
     // Save to persistent storage
     await saveGenericNotification(payload, eventType);
+    
+    // Forward to n8n workflow
+    await forwardToN8n(eventType, payload, req.headers);
     
     // Handle different event types based on the x-event-type header
     // Add specific logic for different event types here as needed

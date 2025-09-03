@@ -16,9 +16,11 @@ PORT=3001
 NODE_ENV=production
 HOST=0.0.0.0
 
-# CORS Configuration
-CORS_ORIGIN=http://localhost:3000
-CORS_CREDENTIALS=true
+# Frontend URL for CORS
+FRONTEND_URL=http://localhost:3000
+
+# n8n Webhook URL for workflow triggering
+N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/your-webhook-id
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=900000
@@ -70,6 +72,22 @@ HSTS_MAX_AGE=31536000
 DATABASE_URL=mongodb://localhost:27017/threatpeek
 REDIS_URL=redis://localhost:6379
 ```
+
+### n8n Integration
+
+ThreatPeek can forward webhook events to n8n workflows for additional processing and automation. To enable this feature:
+
+1. Set up a webhook in your n8n instance
+2. Copy the webhook URL
+3. Add it to your `.env` file as `N8N_WEBHOOK_URL`
+
+When configured, all webhook events received by ThreatPeek will be automatically forwarded to your n8n workflow. The forwarded data includes:
+- Event type (e.g., 'anomaly-detected', 'scan-completed')
+- Payload data
+- Original request headers (prefixed with 'x-original-')
+- Timestamp of the forwarding
+
+If `N8N_WEBHOOK_URL` is not set, forwarding will be skipped silently.
 
 ### Development vs Production
 
