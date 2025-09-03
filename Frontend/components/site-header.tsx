@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Shield } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import Link from "next/link";
+import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,11 +13,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 export function SiteHeader() {
-  const { user, isLoading, logout } = useAuth()
-  const router = useRouter()
+  const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
@@ -58,10 +58,15 @@ export function SiteHeader() {
             {!isLoading && user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button aria-label="Open profile menu" className="inline-flex items-center focus:outline-none">
+                  <button
+                    aria-label="Open profile menu"
+                    className="inline-flex items-center focus:outline-none"
+                  >
                     <Avatar className="h-9 w-9 ring-1 ring-gray-700">
                       <AvatarFallback className="bg-blue-600 text-white">
-                        {(user.name || user.email || "?").charAt(0).toUpperCase()}
+                        {(user.name || user.email || "?")
+                          .charAt(0)
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </button>
@@ -69,16 +74,24 @@ export function SiteHeader() {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="text-xs">
                     Signed in as
-                    <div className="text-foreground font-medium truncate">{user.name || user.email}</div>
+                    <div className="text-foreground font-medium truncate">
+                      {user.name || user.email}
+                    </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push("/dashboard/scan")}>Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/profile")}>Profile</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/scan")}
+                  >
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/profile")}>
+                    Profile
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={async () => {
-                      await logout()
-                      router.push("/")
+                      await logout();
+                      router.push("/");
                     }}
                   >
                     Logout
@@ -90,5 +103,5 @@ export function SiteHeader() {
         </div>
       </div>
     </nav>
-  )
+  );
 }

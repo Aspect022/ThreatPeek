@@ -47,9 +47,7 @@ async function logNotification(type, severity, message, details = {}) {
 async function sendCriticalAnomalyNotification(anomalyData) {
   const { anomaly, severity, source, details } = anomalyData;
   
-  // In a real implementation, this would integrate with email services, Slack, etc.
-  // For now, we'll just log it as a critical notification
-  
+  // Log the anomaly notification
   await logNotification(
     'anomaly',
     severity,
@@ -73,25 +71,45 @@ async function sendScanCompletionNotification(scanData) {
   const { scanId, status, results } = scanData;
   
   // Check if there are critical findings
-  const criticalFindings = results?.findings?.filter(finding => 
-    finding.severity === 'critical' || finding.severity === 'high'
-  ) || [];
+  let criticalFindingsCount = 0;
+  let highFindingsCount = 0;
   
-  if (criticalFindings.length > 0) {
+  if (results && results.categories) {
+    results.categories.forEach(category => {
+      if (category.summary) {
+        criticalFindingsCount += category.summary.criticalCount || 0;
+        highFindingsCount += category.summary.highCount || 0;
+      }
+    });
+  }
+  
+  if (criticalFindingsCount > 0 || highFindingsCount > 0) {
     await logNotification(
-      'scan',
-      'critical',
-      `Scan ${scanId} completed with ${criticalFindings.length} critical/high findings`,
-      { scanId, status, criticalFindingsCount: criticalFindings.length }
-    );
-  } else {
-    await logNotification(
-      'scan',
-      'info',
-      `Scan ${scanId} completed successfully`,
-      { scanId, status, findingsCount: results?.findings?.length || 0 }
+      'anomaly',
+      criticalFindingsCount > 0 ? 'critical' : 'high',
+      `Scan ${scanId} completed with ${criticalFindingsCount} critical and ${highFindingsCount} high severity findings`,
+      { 
+        scanId, 
+        status, 
+        criticalFindingsCount,
+        highFindingsCount,
+        totalFindings: results?.summary?.totalFindings || 0
+      }
     );
   }
+  
+  await logNotification(
+    'scan',
+    criticalFindingsCount > 0 ? 'critical' : (highFindingsCount > 0 ? 'high' : 'info'),
+    `Scan ${scanId} completed ${status}`,
+    { 
+      scanId, 
+      status, 
+      findingsCount: results?.summary?.totalFindings || 0,
+      criticalFindingsCount,
+      highFindingsCount
+    }
+  );
   
   // TODO: Add integration with actual notification services
 }

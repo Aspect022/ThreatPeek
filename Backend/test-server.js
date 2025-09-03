@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 
+// Import log monitor
+const logMonitor = require('./utils/logMonitor');
+
 const app = express();
 const PORT = 3001;
 
@@ -14,7 +17,11 @@ app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        logMonitor: logMonitor.getStatus()
+    });
 });
 
 // Simple scan endpoint
@@ -130,14 +137,21 @@ app.get('/api/scan/enhanced/:scanId/results', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`🚀 Test Backend running on port ${PORT}`);
     console.log(`✅ CORS enabled for localhost:3000`);
     console.log(`📋 Test endpoints available`);
+    
+    // Start log monitoring
+    logMonitor.startMonitoring();
 });
 
 // Keep the process running
 process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down test server...');
-    process.exit(0);
+    logMonitor.stopMonitoring();
+    server.close(() => {
+        console.log('✅ Test server closed');
+        process.exit(0);
+    });
 });

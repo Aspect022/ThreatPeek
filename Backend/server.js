@@ -4,9 +4,13 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+// Import log monitor
+const logMonitor = require('./utils/logMonitor');
+
 const scanRoutes = require('./routes/scan');
 const enhancedScanRoutes = require('./routes/enhancedScan');
 const webhookRoutes = require('./routes/webhook');
+const stegoshieldRoutes = require('./routes/stegoshield');
 const webhookHistoryRoutes = require('./routes/webhookHistory');
 
 const app = express();
@@ -62,6 +66,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/webhook-history', webhookHistoryRoutes);
 app.use('/api/enhanced-scan', enhancedScanRoutes);
+app.use('/api', stegoshieldRoutes);
 app.use('/api', scanRoutes);
 
 // Health check endpoint
@@ -70,7 +75,8 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
+    version: '1.0.0',
+    logMonitor: logMonitor.getStatus()
   });
 });
 
@@ -94,6 +100,19 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 ThreatPeek Backend running on port ${PORT}`);
+  
+  // Start log monitoring
+  logMonitor.startMonitoring();
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down server...');
+  logMonitor.stopMonitoring();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });

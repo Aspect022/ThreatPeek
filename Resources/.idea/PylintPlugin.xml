@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PylintSettings">
+    <option name="arguments" value="--jobs 0 --recursive y" />
+    <option name="projectDirectory" value="$PROJECT_DIR$" />
+  </component>
+</project>
