@@ -102,7 +102,7 @@ app.use((req, res) => {
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 ThreatPeek Backend running on port ${PORT}`);
-  
+
   // Start log monitoring
   logMonitor.startMonitoring();
 });

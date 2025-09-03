@@ -44,32 +44,27 @@ export default function AdvancePage() {
 
   const securityTools = [
     {
-      name: "Good SQLi Test",
-      description: "Safe SQL query test",
+      name: "SQLi Test",
+      description: "SQL Injection vulnerability test (Good + Bad)",
       icon: <Bug className="h-4 w-4" />,
-      command: "curl 'http://172.31.74.84:5002/sqli?id=1'",
-      color: "bg-green-500 hover:bg-green-600",
-    },
-    {
-      name: "Bad SQLi Test",
-      description: "Malicious SQL injection test",
-      icon: <Bug className="h-4 w-4" />,
-      command:
+      commands: [
+        "curl 'http://172.31.74.84:5002/sqli?id=1'",
         "curl 'http://172.31.74.84:5002/sqli?id=1%27%20OR%20%271%27=%271'",
+      ],
       color: "bg-red-500 hover:bg-red-600",
     },
     {
       name: "XSS Detector",
       description: "Cross-site scripting vulnerability scanner",
       icon: <Code className="h-4 w-4" />,
-      command: "python3 ~/demo_targets/xss_demo.py",
+      url: "http://172.31.74.84:5005/xss?input=%3Cscript%3Ealert(%22XSS%22)%3C/script%3E",
       color: "bg-orange-500 hover:bg-orange-600",
     },
     {
       name: "Network Scanner",
       description: "Port scanning and network reconnaissance",
       icon: <Network className="h-4 w-4" />,
-      command: "nmap -sS -sV 127.0.0.1",
+      command: "nmap -p 22,80,443,8000 127.0.0.1",
       color: "bg-blue-500 hover:bg-blue-600",
     },
     {
@@ -135,7 +130,25 @@ export default function AdvancePage() {
 
   const simulate = (tool: any) => {
     setCurrentTool(tool.name);
-    injectCommand(tool.command);
+
+    if (tool.commands) {
+      // Execute multiple commands for SQLi test
+      tool.commands.forEach((command: string, index: number) => {
+        setTimeout(() => {
+          injectCommand(command);
+        }, index * 1000); // Execute commands with 1 second delay between each
+      });
+    } else if (tool.url) {
+      // Open URL in new tab for XSS test
+      window.open(tool.url, "_blank");
+      toast({
+        title: "XSS Test Opened",
+        description: "Opened XSS test page in new tab",
+      });
+    } else {
+      // Execute single command
+      injectCommand(tool.command);
+    }
   };
 
   const activateSandbox = () => {
@@ -263,19 +276,15 @@ export default function AdvancePage() {
                             <div>
                               <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
                                 <Bug className="h-4 w-4" />
-                                SQL Injection Tests
+                                SQL Injection Test
                               </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {securityTools.slice(0, 2).map((tool) => (
+                              <div className="grid grid-cols-1 gap-3">
+                                {securityTools.slice(0, 1).map((tool) => (
                                   <Button
                                     key={tool.name}
                                     onClick={() => simulate(tool)}
                                     variant="outline"
-                                    className={`h-auto p-4 flex flex-col items-start gap-2 border-l-4 ${
-                                      tool.name.includes("Good")
-                                        ? "border-l-green-500 hover:border-l-green-600"
-                                        : "border-l-red-500 hover:border-l-red-600"
-                                    }`}
+                                    className="h-auto p-4 flex flex-col items-start gap-2 border-l-4 border-l-red-500 hover:border-l-red-600"
                                     disabled={!sandboxActive}
                                   >
                                     <div className="flex items-center gap-2 w-full">
@@ -288,10 +297,19 @@ export default function AdvancePage() {
                                     <span className="text-xs text-muted-foreground text-left">
                                       {tool.description}
                                     </span>
-                                    {sandboxActive && (
-                                      <code className="text-xs bg-muted p-1 rounded mt-1 w-full text-left">
-                                        {tool.command}
-                                      </code>
+                                    {sandboxActive && tool.commands && (
+                                      <div className="mt-2 space-y-1">
+                                        {tool.commands.map(
+                                          (cmd: string, index: number) => (
+                                            <code
+                                              key={index}
+                                              className="text-xs bg-muted p-1 rounded block text-left"
+                                            >
+                                              {index + 1}. {cmd}
+                                            </code>
+                                          )
+                                        )}
+                                      </div>
                                     )}
                                   </Button>
                                 ))}
@@ -304,7 +322,7 @@ export default function AdvancePage() {
                                 Other Tools
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {securityTools.slice(2).map((tool) => (
+                                {securityTools.slice(1).map((tool) => (
                                   <Button
                                     key={tool.name}
                                     onClick={() => simulate(tool)}
@@ -322,7 +340,12 @@ export default function AdvancePage() {
                                     <span className="text-xs text-muted-foreground text-left">
                                       {tool.description}
                                     </span>
-                                    {sandboxActive && (
+                                    {sandboxActive && tool.url && (
+                                      <code className="text-xs bg-muted p-1 rounded mt-1 w-full text-left">
+                                        {tool.url}
+                                      </code>
+                                    )}
+                                    {sandboxActive && tool.command && (
                                       <code className="text-xs bg-muted p-1 rounded mt-1 w-full text-left">
                                         {tool.command}
                                       </code>
@@ -377,17 +400,15 @@ export default function AdvancePage() {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                         <Bug className="h-5 w-5" />
-                        SQL Injection Tests
+                        SQL Injection Test
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {securityTools.slice(0, 2).map((tool) => (
+                      <div className="grid grid-cols-1 gap-3">
+                        {securityTools.slice(0, 1).map((tool) => (
                           <Card
                             key={tool.name}
                             className="p-4 border-l-4"
                             style={{
-                              borderLeftColor: tool.name.includes("Good")
-                                ? "#10b981"
-                                : "#ef4444",
+                              borderLeftColor: "#ef4444",
                             }}
                           >
                             <div className="flex items-start justify-between">
@@ -407,18 +428,23 @@ export default function AdvancePage() {
                                 }
                                 disabled={!sandboxActive}
                                 size="sm"
-                                className={
-                                  tool.name.includes("Good")
-                                    ? "bg-green-600 hover:bg-green-700"
-                                    : "bg-red-600 hover:bg-red-700"
-                                }
+                                className="bg-red-600 hover:bg-red-700"
                               >
                                 Run
                               </Button>
                             </div>
-                            {sandboxActive && (
-                              <div className="mt-3 p-2 bg-muted rounded text-xs font-mono">
-                                {tool.command}
+                            {sandboxActive && tool.commands && (
+                              <div className="mt-3 space-y-2">
+                                {tool.commands.map(
+                                  (cmd: string, index: number) => (
+                                    <div
+                                      key={index}
+                                      className="p-2 bg-muted rounded text-xs font-mono"
+                                    >
+                                      {index + 1}. {cmd}
+                                    </div>
+                                  )
+                                )}
                               </div>
                             )}
                           </Card>
@@ -432,7 +458,7 @@ export default function AdvancePage() {
                         Other Security Tools
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {securityTools.slice(2).map((tool) => (
+                        {securityTools.slice(1).map((tool) => (
                           <Card key={tool.name} className="p-4">
                             <div className="flex items-start justify-between">
                               <div className="flex items-center gap-3">
@@ -455,7 +481,12 @@ export default function AdvancePage() {
                                 Run
                               </Button>
                             </div>
-                            {sandboxActive && (
+                            {sandboxActive && tool.url && (
+                              <div className="mt-3 p-2 bg-muted rounded text-xs font-mono">
+                                {tool.url}
+                              </div>
+                            )}
+                            {sandboxActive && tool.command && (
                               <div className="mt-3 p-2 bg-muted rounded text-xs font-mono">
                                 {tool.command}
                               </div>
