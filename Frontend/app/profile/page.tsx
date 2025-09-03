@@ -1,33 +1,38 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useAuth } from "@/hooks/use-auth"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { BadgesGrid, type BadgeSlug } from "@/components/profile/badges"
-import { UserCard } from "@/components/profile/user-card"
+import * as React from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { BadgesGrid, type BadgeSlug } from "@/components/profile/badges";
+import { UserCard } from "@/components/profile/user-card";
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   // Website URL (local-only for now)
-  const [siteUrl, setSiteUrl] = React.useState("")
+  const [siteUrl, setSiteUrl] = React.useState("");
 
-  // System-managed badges: keep empty by default.
+  // System-managed badges: show some badges as earned for demonstration
   // Later, award badges from your Advance tests workflow, e.g.:
   // if (ddosTestPassed) earnedBadges.push("ddos-proof")
-  const [earnedBadges] = React.useState<BadgeSlug[]>([])
+  const [earnedBadges] = React.useState<BadgeSlug[]>([
+    "sqli",
+    "xss",
+    "nmap",
+    "scan-verified",
+  ]);
 
   // Settings (local placeholders)
-  const [emailAlerts, setEmailAlerts] = React.useState(true)
-  const [slackAlerts, setSlackAlerts] = React.useState(false)
-  const [publicProfile, setPublicProfile] = React.useState(false)
+  const [emailAlerts, setEmailAlerts] = React.useState(true);
+  const [slackAlerts, setSlackAlerts] = React.useState(false);
+  const [publicProfile, setPublicProfile] = React.useState(false);
 
   function handleSaveSiteUrl(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
     // TODO: Wire to backend action/route to persist the URL
     // console.log("[v0] Save site URL:", siteUrl)
   }
@@ -56,7 +61,8 @@ export default function ProfilePage() {
               <Button type="submit">Save</Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              This will be used across scans and badges. Saving is local-only for now.
+              This will be used across scans and badges. Saving is local-only
+              for now.
             </p>
           </form>
         </Card>
@@ -64,7 +70,13 @@ export default function ProfilePage() {
         {/* User Details */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Details of the user</h2>
-          {user ? <UserCard /> : <Card className="p-4 text-sm text-muted-foreground">You are not logged in.</Card>}
+          {user ? (
+            <UserCard />
+          ) : (
+            <Card className="p-4 text-sm text-muted-foreground">
+              You are not logged in.
+            </Card>
+          )}
         </section>
 
         {/* Badges Obtained (system-managed) */}
@@ -73,10 +85,15 @@ export default function ProfilePage() {
           <Card className="p-4">
             {earnedBadges.length === 0 ? (
               <div className="text-sm text-muted-foreground">
-                No badges yet. Badges are awarded automatically from tests in Advance (e.g., DDoS drill → “DDoS Proof”).
+                No badges yet. Badges are awarded automatically from tests in
+                Advance (e.g., DDoS drill → “DDoS Proof”).
               </div>
             ) : null}
-            <BadgesGrid earned={earnedBadges} showLocked={false} className="mt-3" />
+            <BadgesGrid
+              earned={earnedBadges}
+              showLocked={false}
+              className="mt-3"
+            />
           </Card>
         </section>
 
@@ -87,9 +104,15 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium text-sm">Email notifications</div>
-                <p className="text-xs text-muted-foreground">Receive email updates for scans, logs and alerts.</p>
+                <p className="text-xs text-muted-foreground">
+                  Receive email updates for scans, logs and alerts.
+                </p>
               </div>
-              <Switch checked={emailAlerts} onCheckedChange={setEmailAlerts} aria-label="Toggle email alerts" />
+              <Switch
+                checked={emailAlerts}
+                onCheckedChange={setEmailAlerts}
+                aria-label="Toggle email alerts"
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -98,14 +121,24 @@ export default function ProfilePage() {
                   Send alerts to Slack (configure in Alerts &gt; Settings).
                 </p>
               </div>
-              <Switch checked={slackAlerts} onCheckedChange={setSlackAlerts} aria-label="Toggle Slack alerts" />
+              <Switch
+                checked={slackAlerts}
+                onCheckedChange={setSlackAlerts}
+                aria-label="Toggle Slack alerts"
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium text-sm">Public profile</div>
-                <p className="text-xs text-muted-foreground">Allow sharing a read-only profile with badges.</p>
+                <p className="text-xs text-muted-foreground">
+                  Allow sharing a read-only profile with badges.
+                </p>
               </div>
-              <Switch checked={publicProfile} onCheckedChange={setPublicProfile} aria-label="Toggle public profile" />
+              <Switch
+                checked={publicProfile}
+                onCheckedChange={setPublicProfile}
+                aria-label="Toggle public profile"
+              />
             </div>
             <div className="flex justify-end">
               <Button type="button" variant="secondary" disabled>
@@ -116,5 +149,5 @@ export default function ProfilePage() {
         </section>
       </div>
     </main>
-  )
+  );
 }

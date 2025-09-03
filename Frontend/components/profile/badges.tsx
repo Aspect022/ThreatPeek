@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export type BadgeSlug =
   | "ddos-proof"
@@ -13,12 +13,45 @@ export type BadgeSlug =
   | "rate-limited"
   | "config-hygiene"
   | "uptime-99"
+  | "sqli"
+  | "xss"
+  | "nmap"
+  | "scan-verified";
 
 /**
  * System-managed badges. Do not expose edit controls in the UI.
- * Replace the image paths with your real PNGs later. Keep the same slugs.
+ * Updated with actual badge images from public/Badges folder.
  */
-const BADGES: { slug: BadgeSlug; name: string; description: string; image: string }[] = [
+const BADGES: {
+  slug: BadgeSlug;
+  name: string;
+  description: string;
+  image: string;
+}[] = [
+  {
+    slug: "sqli",
+    name: "SQL Injection Expert",
+    description: "Completed SQL injection vulnerability testing",
+    image: "/Badges/sqli.jpg",
+  },
+  {
+    slug: "xss",
+    name: "XSS Vulnerability Tester",
+    description: "Completed cross-site scripting vulnerability testing",
+    image: "/Badges/xss.png",
+  },
+  {
+    slug: "nmap",
+    name: "Network Scanner Pro",
+    description: "Completed network reconnaissance and port scanning",
+    image: "/Badges/nmap.jpg",
+  },
+  {
+    slug: "scan-verified",
+    name: "Scan Verified",
+    description: "Successfully completed security scan verification",
+    image: "/Badges/scanVerified.png",
+  },
   {
     slug: "ddos-proof",
     name: "DDoS Proof",
@@ -61,29 +94,37 @@ const BADGES: { slug: BadgeSlug; name: string; description: string; image: strin
     description: "Consistent availability",
     image: "/images/badges/uptime-99.png",
   },
-]
+];
 
 export function BadgesGrid({
   earned,
   className,
   showLocked = true,
 }: {
-  earned: BadgeSlug[]
-  className?: string
-  showLocked?: boolean
+  earned: BadgeSlug[];
+  className?: string;
+  showLocked?: boolean;
 }) {
-  const earnedSet = React.useMemo(() => new Set(earned), [earned])
+  const earnedSet = React.useMemo(() => new Set(earned), [earned]);
 
-  const items = BADGES.filter((b) => showLocked || earnedSet.has(b.slug))
+  const items = BADGES.filter((b) => showLocked || earnedSet.has(b.slug));
 
   return (
-    <div className={cn("grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4", className)}>
+    <div
+      className={cn(
+        "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4",
+        className
+      )}
+    >
       {items.map((b) => {
-        const isEarned = earnedSet.has(b.slug)
+        const isEarned = earnedSet.has(b.slug);
         return (
           <Card
             key={b.slug}
-            className={cn("p-3 flex flex-col items-center text-center gap-3", isEarned ? "" : "opacity-60")}
+            className={cn(
+              "p-3 flex flex-col items-center text-center gap-3",
+              isEarned ? "" : "opacity-60"
+            )}
             role="group"
             aria-label={`${b.name}${isEarned ? "" : " (locked)"}`}
           >
@@ -92,7 +133,10 @@ export function BadgesGrid({
               <img
                 src={b.image || "/placeholder.svg"}
                 alt={b.name}
-                className={cn("w-full h-full object-contain", isEarned ? "" : "grayscale")}
+                className={cn(
+                  "w-full h-full object-contain",
+                  isEarned ? "" : "grayscale"
+                )}
               />
             </div>
             <div>
@@ -105,7 +149,7 @@ export function BadgesGrid({
                   "text-[10px] px-2 py-0.5 rounded",
                   isEarned
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
                 )}
               >
                 {isEarned ? "Awarded" : "Locked"}
@@ -116,8 +160,8 @@ export function BadgesGrid({
               </Button>
             </div>
           </Card>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
