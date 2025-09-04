@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-09-03T08:52:09.627Z",
+  "anomaly": "log_anomaly_detected",
+  "severity": "high",
+  "source": "log_monitor",
+  "details": {
+    "logType": "anomaly",
+    "message": "Critical anomaly detected: Test anomaly",
+    "logDetails": {
+      "source": "test-script",
+      "details": {
+        "description": "This is a test anomaly notification",
+        "testData": true
+      }
+    },
+    "detectionSource": "log_file_monitoring"
+  },
+  "receivedAt": "2025-09-03T23:28:23.560Z",
+  "type": "anomaly"
+}
