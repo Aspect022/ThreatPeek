@@ -224,23 +224,15 @@ This project is licensed under the [MIT License](./LICENSE) - see the LICENSE fi
 - **Issues**: Report bugs and feature requests via GitHub Issues
 - **Security**: Report security vulnerabilities via our [Security Policy](./SECURITY.md)
 
-## 🎯 Roadmap
-
-- [ ] Enhanced ML model accuracy and performance
-- [ ] Additional steganography detection algorithms  
-- [ ] Mobile application development
-- [ ] Cloud deployment automation
-- [ ] Advanced threat intelligence integration
-- [ ] Real-time collaborative features
 
 ## 👥 Contributors
 
 ThreatPeek is proudly developed by a collaborative team of four passionate developers:
 
-- **[Your Name]** - [Your Role] ([GitHub](https://github.com/your-username))
-- **[Friend 1 Name]** - [Their Role] ([GitHub](https://github.com/friend1-username))
-- **[Friend 2 Name]** - [Their Role] ([GitHub](https://github.com/friend2-username))
-- **[Friend 3 Name]** - [Their Role] ([GitHub](https://github.com/friend3-username))
+- **Jayesh RL** - Team Lead(FullStack and integration) ([GitHub](https://github.com/Aspect022))
+- **Rajath U** - Ml ([GitHub](https://github.com/Rajathshivraj))
+- **Vaishanth Mohan** - UI/UX and Agentic Automation ([GitHub](https://github.com/friend2-username))
+- **Sinchana Benakatti** - CyberSec ([GitHub](https://github.com/friend3-username))
 
 For detailed information about each contributor's role and contributions, see our [CONTRIBUTORS.md](./CONTRIBUTORS.md) file.
 
