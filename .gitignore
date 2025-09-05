@@ -1,0 +1,407 @@
+# ThreatPeek Project .gitignore
+
+# ==============================================
+# LARGE FILES & MEDIA (Ignore or use Git LFS)
+# ==============================================
+
+# Video files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.m4v
+
+# Large image files
+*.tiff
+*.tif
+*.bmp
+*.psd
+*.raw
+*.cr2
+*.nef
+*.arw
+
+# Audio files
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.m4a
+
+# Archive files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tar.bz2
+
+# Large datasets and models
+*.csv
+*.json
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.model
+*.joblib
+
+# Demo and resource files (if very large)
+/Other\ Resources/*.mp4
+/Other\ Resources/*.mov
+/Resources/*.mp4
+/Resources/*.mov
+
+# ==============================================
+# NODE.JS & NPM
+# ==============================================
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# ==============================================
+# PYTHON
+# ==============================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+anomaly_detection_env/
+stego_env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ==============================================
+# ENVIRONMENT & CONFIGURATION
+# ==============================================
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Configuration files with secrets
+config/secrets.json
+config/credentials.json
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ==============================================
+# DEVELOPMENT TOOLS
+# ==============================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ==============================================
+# OPERATING SYSTEM
+# ==============================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==============================================
+# DOCKER
+# ==============================================
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# ==============================================
+# LOGS & DATABASES
+# ==============================================
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================================
+# TEMPORARY FILES
+# ==============================================
+
+# Temporary directories
+temp/
+tmp/
+.tmp/
+
+# Generated files
+generated/
+auto-generated/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# ==============================================
+# PROJECT SPECIFIC
+# ==============================================
+
+# Plasmo extension builds
+.plasmo/
+build/
+
+# n8n workflows backup
+.n8n/
+
+# Model files (large ML models)
+Models/*.pkl
+Models/*.model
+Models/*.h5
+
+# Test data
+test-data/
+sample-data/
+
+# Documentation builds
+docs/_build/
+docs/build/
+
+# ==============================================
+# SECURITY
+# ==============================================
+
+# Private keys and certificates
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# API keys and secrets
+secrets/
+.secrets/
+api-keys.json
+
+# OAuth tokens
+.oauth
+oauth.json
