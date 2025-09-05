@@ -6,10 +6,10 @@ Thank you for your interest in contributing to ThreatPeek! This document provide
 
 ThreatPeek is developed by a collaborative team of four developers:
 
-- **[Your Name]** - [Your Role]
-- **[Friend 1 Name]** - [Their Role]
-- **[Friend 2 Name]** - [Their Role]
-- **[Friend 3 Name]** - [Their Role]
+- **Jayesh RL** - Team Lead(FullStack and integration) ([GitHub](https://github.com/Aspect022))
+- **Rajath U** - Ml ([GitHub](https://github.com/Rajathshivraj))
+- **Vaishanth Mohan** - UI/UX and Agentic Automation ([GitHub](https://github.com/friend2-username))
+- **Sinchana Benakatti** - CyberSec ([GitHub](https://github.com/friend3-username))
 
 For detailed information about each team member's contributions, see [CONTRIBUTORS.md](./CONTRIBUTORS.md).
 
