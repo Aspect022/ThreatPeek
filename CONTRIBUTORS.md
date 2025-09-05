@@ -1,116 +1,111 @@
 # Contributors 👥
 
-ThreatPeek is a collaborative project developed by a team of four dedicated developers. Each team member brought unique skills and expertise to create this comprehensive cybersecurity platform.
+ThreatPeek was developed by a passionate four-member team, each bringing their unique expertise to build a comprehensive cybersecurity platform.  
 
-## Core Team
+## Core Team  
 
-### [Your Name]
-- **Role**: [Your Primary Role - e.g., Full-Stack Developer / Project Lead]
-- **Focus Areas**: [Your main contributions - e.g., Frontend Development, Project Architecture]
-- **GitHub**: [@your-github-username](https://github.com/your-github-username)
-- **LinkedIn**: [Your LinkedIn Profile](https://linkedin.com/in/your-profile)
-- **Email**: your.email@example.com
+### **Jayesh RL**  
+- **Role**: Team Lead & Full-Stack Developer  
+- **Focus Areas**: System Architecture, Frontend & Backend Development, Integration Support  
+- **GitHub**: [@aspect022](https://github.com/Aspect022)  
+- **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/jayesh-rl-748059291)  
+- **Email**: jayeshrl2005@gmail.com 
 
-**Key Contributions:**
-- [List your main contributions, e.g.:]
-- Developed the Next.js frontend dashboard
-- Designed the overall system architecture
-- Implemented the backend API structure
-- Created comprehensive documentation
-
----
-
-### [Friend 1 Name]
-- **Role**: [Their Primary Role - e.g., Machine Learning Engineer]
-- **Focus Areas**: [Their main contributions - e.g., Anomaly Detection, Data Science]
-- **GitHub**: [@friend1-github-username](https://github.com/friend1-github-username)
-- **LinkedIn**: [Friend 1 LinkedIn Profile](https://linkedin.com/in/friend1-profile)
-- **Email**: friend1.email@example.com
-
-**Key Contributions:**
-- [List their main contributions, e.g.:]
-- Developed the anomaly detection ML models
-- Implemented Random Forest and Isolation Forest algorithms
-- Created the Jupyter notebook analysis pipeline
-- Designed the feature engineering process
+**Key Contributions:**  
+- Designed and implemented the **overall project architecture**  
+- Developed the **Next.js frontend dashboard** and **Node.js backend services**  
+- Integrated all components — ML, security modules, automation, and logging — into one unified system  
+- Led the team through planning, execution, and delivery  
+- Built and maintained the **core website & documentation**  
 
 ---
 
-### [Friend 2 Name]
-- **Role**: [Their Primary Role - e.g., Backend Developer / DevOps Engineer]
-- **Focus Areas**: [Their main contributions - e.g., Backend Services, Automation]
-- **GitHub**: [@friend2-github-username](https://github.com/friend2-github-username)
-- **LinkedIn**: [Friend 2 LinkedIn Profile](https://linkedin.com/in/friend2-profile)
-- **Email**: friend2.email@example.com
+### **Rajat Shivaraj**  
+- **Role**: Machine Learning Engineer  
+- **Focus Areas**: Anomaly Detection, StegnoShield OCR & Tesseract, Prompt Injection Defense  
+- **GitHub**: [@RajatShivaraj](https://github.com/RajatShivaraj)  
+- **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/rajath-u-891b18316)  
+- **Email**: eng23am0175@gmail.com  
 
-**Key Contributions:**
-- [List their main contributions, e.g.:]
-- Built the StegnoShield steganography analysis service
-- Developed the FastAPI microservice architecture
-- Implemented OCR and image processing capabilities
-- Created Docker containerization setup
-
----
-
-### [Friend 3 Name]
-- **Role**: [Their Primary Role - e.g., Automation Engineer / Extension Developer]
-- **Focus Areas**: [Their main contributions - e.g., Browser Extension, Automation Workflows]
-- **GitHub**: [@friend3-github-username](https://github.com/friend3-github-username)
-- **LinkedIn**: [Friend 3 LinkedIn Profile](https://linkedin.com/in/friend3-profile)
-- **Email**: friend3.email@example.com
-
-**Key Contributions:**
-- [List their main contributions, e.g.:]
-- Developed the Chrome browser extension
-- Created the n8n automation workflows
-- Implemented multi-channel alerting system
-- Designed the Plasmo-based extension architecture
+**Key Contributions:**  
+- Developed **ML-based anomaly detection models** (Random Forest, Isolation Forest)  
+- Implemented **StegnoShield** using **Tesseract OCR** and bit manipulation for steganography analysis  
+- Proposed and implemented the **Prompt Injection defense mechanism**  
+- Contributed to the **backend pipeline** and **extension logic**  
 
 ---
 
-## Project Statistics
+### **Vaishanth Mohan**  
+- **Role**: Cybersecurity Engineer  
+- **Focus Areas**: Sandbox System, Vulnerability Testing, Ethical Oversight  
+- **GitHub**: [GitHub Profile](https://github.com/friend2-github-username)  
+- **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/vaishanth-m)  
+- **Email**: vaishanth.mohan@gmail.com  
 
-- **Total Contributors**: 4
-- **Development Period**: [Start Date] - [End Date]
-- **Total Commits**: [Number if available]
-- **Lines of Code**: [Estimate if available]
-- **Technologies Used**: 15+ (Node.js, React, Python, FastAPI, n8n, etc.)
-
-## Collaboration Approach
-
-Our team followed modern software development practices:
-
-- **Version Control**: Git with feature branch workflow
-- **Code Reviews**: Peer review for all major changes
-- **Documentation**: Comprehensive README files for each component
-- **Testing**: Unit and integration testing across components
-- **Communication**: Regular sync meetings and Discord/Slack channels
-
-## Recognition
-
-This project was developed as part of [Context - e.g., Hackathon, University Project, Personal Initiative] and represents the collective effort and expertise of all four team members.
-
-Each contributor played a crucial role in bringing ThreatPeek to life, from the initial concept to the final implementation.
-
-## Contact the Team
-
-For questions, collaborations, or opportunities:
-
-- **Project Repository**: [GitHub Repository URL]
-- **Team Email**: threatpeek.team@example.com
-- **Project Website**: [Website URL if available]
+**Key Contributions:**  
+- Designed and developed the **sandbox environment** to test vulnerabilities (SQLi, XSS, Nmap scanning)  
+- Implemented and optimized the **log monitoring system**  
+- Ensured **ethical compliance** throughout the project as Ethics Head  
+- Collaborated on **security workflows** and attack simulation modules  
 
 ---
 
-## Acknowledgments
+### **Sinchana Benakatti**  
+- **Role**: Automation Engineer & UI/UX Designer  
+- **Focus Areas**: User Interface, Automation Workflows, Logging System  
+- **GitHub**: [GitHub Profile](https://github.com/friend3-github-username)  
+- **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/sinchana-benakatti-2a198a344)  
+- **Email**: bsinchana12@gmail.com 
 
-We would also like to thank:
-
-- **Open Source Community**: For the amazing tools and libraries that made this project possible
-- **Educational Resources**: Online tutorials, documentation, and community forums
-- **Beta Testers**: Friends and colleagues who helped test the platform
-- **Inspiration**: The cybersecurity community and existing security tools that inspired our approach
+**Key Contributions:**  
+- Designed the **UI/UX** for the platform, ensuring a clean and professional look  
+- Developed **automation workflows** and optimized log system functionalities  
+- Contributed to **browser extension development** alongside Jayesh and Rajat  
+- Streamlined **multi-channel alerting & integration pipelines**  
 
 ---
 
-*ThreatPeek - Built with ❤️ by a passionate team of developers*
+## Project Statistics  
+
+- **Total Contributors**: 4  
+- **Development Period**: May 2025 – Ongoing (continuous improvements)  
+- **Total Commits**: [To be added]  
+- **Lines of Code**: ~100,000+  
+- **Technologies Used**: 15+ (Next.js, Node.js, Python, FastAPI, n8n, Tesseract, Docker, etc.)  
+
+---
+
+## Collaboration Approach  
+
+- **Version Control**: Git with feature-branch workflow  
+- **Code Reviews**: Peer review for major contributions  
+- **Documentation**: Comprehensive README & module-level docs  
+- **Testing**: Unit, integration, and sandbox-based testing  
+- **Communication**: Regular sync-ups and Discord/Slack channels  
+
+---
+
+## Recognition  
+
+ThreatPeek was developed as a **capstone-level cybersecurity initiative**, blending research, engineering, and automation into one cohesive platform. Each contributor played a critical role, from architecture and AI to security testing and UX.  
+
+---
+
+## Contact the Team  
+
+- **Project Repository**: [GitHub Repository URL](https://github.com/Aspect022/ThreatPeek/)  
+- **Team Email**: threatpeek9@gmail.com  
+
+
+---
+
+## Acknowledgments  
+
+- **Open Source Community** – For tools, frameworks, and libraries  
+- **Educational Resources** – Documentation, forums, and guides  
+- **Beta Testers** – Friends & colleagues who tested the platform  
+- **Cybersecurity Community** – For inspiration and research-driven insights  
+
+---
+
+*ThreatPeek – Built with ❤️ by Jayesh, Rajat, Vaishanth, and Sinchana*  
