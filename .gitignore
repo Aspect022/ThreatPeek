@@ -4,9 +4,10 @@
 # LARGE FILES & MEDIA (Ignore or use Git LFS)
 # ==============================================
 
-# Video files
-*.mp4
-*.mov
+# Video files - handled by Git LFS (see .gitattributes)
+# Remove specific ignores since LFS handles these
+# *.mp4 - tracked by LFS
+# *.mov - tracked by LFS
 *.avi
 *.mkv
 *.wmv
@@ -49,11 +50,11 @@
 *.model
 *.joblib
 
-# Demo and resource files (if very large)
-/Other\ Resources/*.mp4
-/Other\ Resources/*.mov
-/Resources/*.mp4
-/Resources/*.mov
+# Demo and resource files - now handled by Git LFS
+# /Other\ Resources/*.mp4 - tracked by LFS
+# /Other\ Resources/*.mov - tracked by LFS  
+# /Resources/*.mp4 - tracked by LFS
+# /Resources/*.mov - tracked by LFS
 
 # ==============================================
 # NODE.JS & NPM
