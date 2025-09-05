@@ -22,7 +22,7 @@ If you discover a security vulnerability in ThreatPeek, we appreciate your help 
 ### Reporting Process
 
 1. **Email Security Team**
-   - Send details to: `security@threatpeek-team.com` (or your team email)
+   - Send details to: `threatpeek9@gmail.com` (or your team email)
    - Use the subject line: `[SECURITY] Vulnerability Report - [Brief Description]`
 
 2. **Include the Following Information**
@@ -180,15 +180,10 @@ Security researchers who responsibly report vulnerabilities will be:
 ## 📞 Contact Information
 
 ### Security Team
-- **Email**: security@threatpeek-team.com
+- **Email**: threatpeek9@gmail.com
 - **Response Time**: Within 48 hours
 - **Preferred Language**: English
 
-### Team Members
-- **[Your Name]** - Security Lead
-- **[Friend 1 Name]** - Backend Security
-- **[Friend 2 Name]** - Infrastructure Security
-- **[Friend 3 Name]** - Frontend Security
 
 ## 📚 Security Resources
 
