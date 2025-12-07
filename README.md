@@ -231,8 +231,8 @@ ThreatPeek is proudly developed by a collaborative team of four passionate devel
 
 - **Jayesh RL** - Team Lead(FullStack and integration) ([GitHub](https://github.com/Aspect022))
 - **Rajath U** - Ml ([GitHub](https://github.com/Rajathshivraj))
-- **Vaishanth Mohan** - UI/UX and Agentic Automation ([GitHub](https://github.com/friend2-username))
-- **Sinchana Benakatti** - CyberSec ([GitHub](https://github.com/friend3-username))
+- **Sinchana Benakatti ** - UI/UX and Agentic Automation ([GitHub](https://github.com/friend2-username))
+- **Vaishanth Mohan** - CyberSec ([GitHub](https://github.com/friend3-username))
 
 For detailed information about each contributor's role and contributions, see our [CONTRIBUTORS.md](./CONTRIBUTORS.md) file.
 
