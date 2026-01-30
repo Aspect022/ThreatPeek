@@ -17,7 +17,7 @@ ThreatPeek was developed by a passionate four-member team, each bringing their u
 - **Focus Areas**: Anomaly Detection, StegnoShield OCR & Tesseract, Prompt Injection Defense ,System Architecture, Frontend & Backend Development, Integration Support . 
 - **GitHub**: [@RajatShivaraj](https://github.com/Rajathshivraj)  
 - **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/rajath-u-891b18316)  
-- **Email**: eng23am0061@gmail.com  
+- **Email**: rajathdsu@gmail.com  
 
 **Key Contributions:**  
 - Developed **ML-based anomaly detection models** (Random Forest, Isolation Forest)  
