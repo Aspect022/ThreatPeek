@@ -5,24 +5,16 @@ ThreatPeek was developed by a passionate four-member team, each bringing their u
 ## Core Team  
 
 ### **Jayesh RL**  
-- **Role**: Team Lead & Full-Stack Developer  
-- **Focus Areas**: System Architecture, Frontend & Backend Development, Integration Support  
+- **Role**: Team Lead  
 - **GitHub**: [@aspect022](https://github.com/Aspect022)  
 - **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/jayesh-rl-748059291)  
 - **Email**: jayeshrl2005@gmail.com 
 
-**Key Contributions:**  
-- Designed and implemented the **overall project architecture**  
-- Developed the **Next.js frontend dashboard** and **Node.js backend services**  
-- Integrated all components — ML, security modules, automation, and logging — into one unified system  
-- Led the team through planning, execution, and delivery  
-- Built and maintained the **core website & documentation**  
-
 ---
 
 ### **Rajat Shivaraj**  
-- **Role**: Machine Learning Engineer  
-- **Focus Areas**: Anomaly Detection, StegnoShield OCR & Tesseract, Prompt Injection Defense  
+- **Role**: contributed to backend integration and ML-based threat detection components   
+- **Focus Areas**: Anomaly Detection, StegnoShield OCR & Tesseract, Prompt Injection Defense ,System Architecture, Frontend & Backend Development, Integration Support . 
 - **GitHub**: [@RajatShivaraj](https://github.com/RajatShivaraj)  
 - **LinkedIn**: [LinkedIn Profile](https://linkedin.com/in/rajath-u-891b18316)  
 - **Email**: eng23am0175@gmail.com  
@@ -31,7 +23,12 @@ ThreatPeek was developed by a passionate four-member team, each bringing their u
 - Developed **ML-based anomaly detection models** (Random Forest, Isolation Forest)  
 - Implemented **StegnoShield** using **Tesseract OCR** and bit manipulation for steganography analysis  
 - Proposed and implemented the **Prompt Injection defense mechanism**  
-- Contributed to the **backend pipeline** and **extension logic**  
+- Contributed to the **backend pipeline** and **extension logic**
+- - Designed and implemented the **overall project architecture**  
+- Developed the **Next.js frontend dashboard** and **Node.js backend services**  
+- Integrated all components — ML, security modules, automation, and logging — into one unified system  
+- Led the team through planning, execution, and delivery  
+- Built and maintained the **core website & documentation**  
 
 ---
 
