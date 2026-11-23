@@ -6,11 +6,20 @@
 const { parentPort, workerData } = require('worker_threads');
 const fs = require('fs-extra');
 const { EnhancedPatternEngine } = require('./enhancedPatternEngine');
+const { DeduplicationEngine } = require('../services/deduplicationEngine');
 const enhancedPatternDefinitions = require('./enhancedPatternDefinitions');
 
 // Initialize pattern engine in worker
 const patternEngine = new EnhancedPatternEngine();
 patternEngine.registerPatterns(enhancedPatternDefinitions.allPatterns);
+
+// Initialize deduplication engine for worker-level deduplication
+const deduplicationEngine = new DeduplicationEngine({
+    enableFileLevel: true,
+    enableScanLevel: false, // Worker handles file-level only
+    preserveContext: true,
+    maxCacheSize: 5000 // Smaller cache for worker threads
+});
 
 // Worker state
 let isShuttingDown = false;
@@ -98,7 +107,7 @@ async function scanFile(taskData, options = {}) {
         });
 
         // Convert matches to findings format
-        const findings = matches.map(match => ({
+        const rawFindings = matches.map(match => ({
             type: match.pattern.name,
             severity: match.pattern.severity,
             confidence: match.confidence,
@@ -119,11 +128,26 @@ async function scanFile(taskData, options = {}) {
             }
         }));
 
+        // Apply worker-level deduplication to prevent duplicate findings within the file
+        const deduplicatedFindings = scanOptions.enableDeduplication !== false ?
+            deduplicationEngine.deduplicateFileFindings(rawFindings, relativePath || filePath) :
+            rawFindings;
+
+        // Get deduplication statistics for this file
+        const deduplicationStats = deduplicationEngine.getStatistics();
+
         return {
             file: relativePath || filePath,
-            findings,
+            findings: deduplicatedFindings,
             size: stats.size,
-            scanTime: Date.now()
+            scanTime: Date.now(),
+            deduplicationStats: {
+                totalFindings: rawFindings.length,
+                uniqueFindings: deduplicatedFindings.length,
+                duplicatesRemoved: rawFindings.length - deduplicatedFindings.length,
+                deduplicationTime: deduplicationStats.deduplicationTime,
+                memoryUsage: deduplicationStats.memoryUsage
+            }
         };
 
     } catch (error) {

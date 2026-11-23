@@ -158,7 +158,9 @@ exports.getScanStatus = async (req, res) => {
             startTime: status.startTime,
             endTime: status.endTime,
             duration: status.duration,
-            summary: status.results.summary
+            summary: status.results.summary,
+            // Include deduplication status if available
+            deduplicationStatus: status.deduplicationStatus || null
         });
 
     } catch (error) {

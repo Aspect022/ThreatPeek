@@ -12,6 +12,7 @@ const enhancedPatternDefinitions = require('../utils/enhancedPatternDefinitions'
 const { WorkerPool } = require('../utils/workerPool');
 const { RetryManager } = require('../utils/retryManager');
 const { ResourceManager } = require('./resourceManager');
+const { DeduplicationEngine } = require('../utils/deduplicationEngine');
 
 class RepositoryScanner {
     constructor(options = {}) {
@@ -609,8 +610,17 @@ class RepositoryScanner {
             maxFiles = 1000,
             onProgress = null,
             useParallelProcessing = true,
-            batchSize = 20
+            batchSize = 20,
+            enableDeduplication = true
         } = options;
+
+        // Initialize deduplication engine
+        const deduplicationEngine = new DeduplicationEngine({
+            enableFileLevel: enableDeduplication,
+            enableScanLevel: enableDeduplication,
+            preserveContext: true,
+            maxCacheSize: 10000
+        });
 
         // First, collect all scannable files
         const scannableFiles = await this.collectScannableFiles(repoPath, {
@@ -646,14 +656,20 @@ class RepositoryScanner {
                         }
                     );
 
-                    // Process batch results
+                    // Process batch results with file-level deduplication
                     batchResults.forEach((result, index) => {
                         if (result && result.findings) {
                             // Update relative paths
                             result.findings.forEach(finding => {
                                 finding.file = batch[index].relativePath;
                             });
-                            allFindings.push(...result.findings);
+
+                            // Apply file-level deduplication
+                            const deduplicatedFileFindings = enableDeduplication
+                                ? deduplicationEngine.deduplicateFileFindings(result.findings, batch[index].relativePath)
+                                : result.findings;
+
+                            allFindings.push(...deduplicatedFileFindings);
                         }
                         filesScanned++;
 
@@ -670,7 +686,13 @@ class RepositoryScanner {
                     for (const file of batch) {
                         try {
                             const fileFindings = await this.scanFile(file.fullPath, file.relativePath);
-                            allFindings.push(...fileFindings);
+
+                            // Apply file-level deduplication
+                            const deduplicatedFileFindings = enableDeduplication
+                                ? deduplicationEngine.deduplicateFileFindings(fileFindings, file.relativePath)
+                                : fileFindings;
+
+                            allFindings.push(...deduplicatedFileFindings);
                         } catch (fileError) {
                             console.warn(`Failed to scan file ${file.relativePath}: ${fileError.message}`);
                         }
@@ -691,7 +713,13 @@ class RepositoryScanner {
             for (const file of scannableFiles) {
                 try {
                     const fileFindings = await this.scanFile(file.fullPath, file.relativePath);
-                    allFindings.push(...fileFindings);
+
+                    // Apply file-level deduplication
+                    const deduplicatedFileFindings = enableDeduplication
+                        ? deduplicationEngine.deduplicateFileFindings(fileFindings, file.relativePath)
+                        : fileFindings;
+
+                    allFindings.push(...deduplicatedFileFindings);
                 } catch (error) {
                     console.warn(`Failed to scan file ${file.relativePath}: ${error.message}`);
                 }
@@ -706,15 +734,24 @@ class RepositoryScanner {
             }
         }
 
+        // Apply scan-level deduplication for final results
+        const finalFindings = enableDeduplication && !deduplicationEngine.shouldSkipDeduplication(allFindings)
+            ? deduplicationEngine.deduplicateScanFindings(allFindings)
+            : allFindings;
+
         // Get file counts for stats
         const fileCounts = await this.countFiles(repoPath);
 
+        // Get deduplication statistics
+        const deduplicationStats = enableDeduplication ? deduplicationEngine.getStats() : null;
+
         return {
-            findings: allFindings,
+            findings: finalFindings,
             filesScanned,
             totalFiles: fileCounts.total,
             scannableFiles: fileCounts.scannable,
-            parallelProcessingUsed: useParallelProcessing && totalFiles > 5
+            parallelProcessingUsed: useParallelProcessing && totalFiles > 5,
+            deduplicationStats
         };
     }
 

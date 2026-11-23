@@ -108,6 +108,11 @@ class ResultFormatter {
             appliedAt: new Date().toISOString()
         };
 
+        // Include deduplication statistics if available
+        if (scanResults.results?.deduplicationStats) {
+            formattedResults.results.deduplicationStats = scanResults.results.deduplicationStats;
+        }
+
         return formattedResults;
     }
 
@@ -360,7 +365,11 @@ class ResultFormatter {
                 high: 0,    // >= 0.8
                 medium: 0,  // 0.5 - 0.79
                 low: 0      // < 0.5
-            }
+            },
+            // Deduplication summary
+            totalOccurrences: 0,
+            duplicateFindings: 0,
+            uniqueFindings: 0
         };
 
         let totalConfidence = 0;
@@ -400,6 +409,14 @@ class ResultFormatter {
                     summary.confidenceDistribution.medium++;
                 } else {
                     summary.confidenceDistribution.low++;
+                }
+
+                // Calculate deduplication statistics
+                const occurrenceCount = finding.occurrenceCount || 1;
+                summary.totalOccurrences += occurrenceCount;
+                summary.uniqueFindings++;
+                if (occurrenceCount > 1) {
+                    summary.duplicateFindings++;
                 }
             });
         });
@@ -540,6 +557,12 @@ class ResultFormatter {
             }
         };
 
+        // Include deduplication statistics if available
+        if (scanResults.results?.deduplicationStats) {
+            consolidatedReport.deduplicationStats = scanResults.results.deduplicationStats;
+            consolidatedReport.metadata.deduplicationEnabled = scanResults.results.deduplicationStats.deduplicationEnabled;
+        }
+
         // Add recommendations if requested
         if (includeRecommendations) {
             consolidatedReport.recommendations = this.generateRecommendations(scanResults);
@@ -574,7 +597,14 @@ class ResultFormatter {
             criticalIssues: summary.criticalCount,
             highPriorityIssues: summary.criticalCount + summary.highCount,
             completionStatus: scanResults.status,
-            scanCoverage: this.calculateScanCoverage(scanResults)
+            scanCoverage: this.calculateScanCoverage(scanResults),
+            // Deduplication overview
+            deduplicationSummary: scanResults.results?.deduplicationStats ? {
+                enabled: scanResults.results.deduplicationStats.deduplicationEnabled,
+                duplicatesRemoved: scanResults.results.deduplicationStats.totalDuplicatesRemoved || 0,
+                deduplicationRate: scanResults.results.deduplicationStats.deduplicationRate || '0%',
+                uniqueFindings: scanResults.results.deduplicationStats.finalFindingsCount || totalFindings
+            } : null
         };
     }
 

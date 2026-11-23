@@ -34,7 +34,11 @@ exports.basicScan = async (req, res) => {
       url,
       timestamp: new Date().toISOString(),
       results,
-      scanMode: 'basic'
+      scanMode: 'basic',
+      deduplicationStats: {
+        deduplicationEnabled: false,
+        reason: 'Basic scan mode does not use deduplication'
+      }
     });
     if (storedScans.size > 100) {
       const oldestKey = storedScans.keys().next().value;
@@ -84,7 +88,11 @@ exports.deepScan = async (req, res) => {
       results,
       scanMode: 'deep',
       jsFilesFound: jsFiles.length,
-      jsFilesScanned: filteredJsFiles.length
+      jsFilesScanned: filteredJsFiles.length,
+      deduplicationStats: {
+        deduplicationEnabled: false,
+        reason: 'Deep scan mode does not use deduplication (legacy controller)'
+      }
     });
     if (storedScans.size > 100) {
       const oldestKey = storedScans.keys().next().value;

@@ -5,6 +5,7 @@
 
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
+const { DeduplicationEngine } = require('../utils/deduplicationEngine');
 
 class SimpleScanOrchestrator extends EventEmitter {
     constructor() {
@@ -13,6 +14,9 @@ class SimpleScanOrchestrator extends EventEmitter {
         this.scanProgress = new Map();
         this.scanErrors = new Map();
         this.scanTimeout = 600000; // 10 minutes
+
+        // Deduplication engines per scan
+        this.deduplicationEngines = new Map();
     }
 
     /**
@@ -90,6 +94,15 @@ class SimpleScanOrchestrator extends EventEmitter {
      */
     async executeScanAsync(scanId, scanState, timeoutId) {
         try {
+            // Initialize deduplication engine for this scan
+            const deduplicationEngine = new DeduplicationEngine({
+                enableFileLevel: true,
+                enableScanLevel: true,
+                preserveContext: true,
+                maxCacheSize: 10000
+            });
+            this.deduplicationEngines.set(scanId, deduplicationEngine);
+
             // Update status to running
             scanState.status = 'running';
             this.emit('scanStatusChanged', { scanId, status: 'running' });
@@ -100,12 +113,15 @@ class SimpleScanOrchestrator extends EventEmitter {
             // Clear timeout
             clearTimeout(timeoutId);
 
-            // Finalize scan
+            // Finalize scan with deduplication
             await this.finalizeScan(scanId);
 
         } catch (error) {
             clearTimeout(timeoutId);
             await this.handleScanError(scanId, error);
+        } finally {
+            // Clean up deduplication engine
+            this.deduplicationEngines.delete(scanId);
         }
     }
 
@@ -175,24 +191,46 @@ class SimpleScanOrchestrator extends EventEmitter {
         const scanState = this.scanProgress.get(scanId);
         if (!scanState) return;
 
-        // Create result category
+        // Apply phase-level deduplication
+        const deduplicationEngine = this.deduplicationEngines.get(scanId);
+        let deduplicatedResults = results || [];
+
+        if (deduplicationEngine && results && results.length > 0) {
+            try {
+                // Deduplicate results within this phase
+                deduplicatedResults = deduplicationEngine.deduplicateFileFindings(results, `phase-${scanType}`);
+
+                console.log(`[ORCHESTRATOR] Phase ${scanType}: ${results.length} -> ${deduplicatedResults.length} findings after deduplication`);
+            } catch (error) {
+                console.warn(`[ORCHESTRATOR] Deduplication failed for phase ${scanType}:`, error.message);
+                // Fall back to original results
+                deduplicatedResults = results;
+            }
+        }
+
+        // Create result category with deduplicated findings
         const category = {
             category: this.mapScanTypeToCategory(scanType),
             scanType,
-            findings: results || [],
-            summary: this.calculateCategorySummary(results || [])
+            findings: deduplicatedResults,
+            summary: this.calculateCategorySummary(deduplicatedResults),
+            deduplicationStats: deduplicationEngine ? {
+                originalCount: results ? results.length : 0,
+                deduplicatedCount: deduplicatedResults.length,
+                duplicatesRemoved: (results ? results.length : 0) - deduplicatedResults.length
+            } : null
         };
 
         scanState.results.categories.push(category);
 
-        // Update overall summary
-        this.updateScanSummary(scanState, results || []);
+        // Update overall summary with deduplicated results
+        this.updateScanSummary(scanState, deduplicatedResults);
 
-        // Store results
+        // Store deduplicated results
         if (!this.scanResults.has(scanId)) {
             this.scanResults.set(scanId, []);
         }
-        this.scanResults.get(scanId).push(...(results || []));
+        this.scanResults.get(scanId).push(...deduplicatedResults);
     }
 
     /**
@@ -270,6 +308,42 @@ class SimpleScanOrchestrator extends EventEmitter {
     }
 
     /**
+     * Calculate final summary for deduplicated results
+     * @param {Array} results - Final deduplicated results
+     * @returns {Object} Summary object
+     */
+    calculateFinalSummary(results) {
+        const summary = {
+            totalFindings: results.length,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0
+        };
+
+        results.forEach(result => {
+            // Use mostSevereSeverity if available (from deduplication), otherwise severity
+            const severity = result.mostSevereSeverity || result.severity || 'medium';
+            switch (severity.toLowerCase()) {
+                case 'critical':
+                    summary.criticalCount++;
+                    break;
+                case 'high':
+                    summary.highCount++;
+                    break;
+                case 'medium':
+                    summary.mediumCount++;
+                    break;
+                case 'low':
+                    summary.lowCount++;
+                    break;
+            }
+        });
+
+        return summary;
+    }
+
+    /**
      * Update overall scan summary
      * @param {Object} scanState - Current scan state
      * @param {Array} results - New results to add
@@ -308,6 +382,63 @@ class SimpleScanOrchestrator extends EventEmitter {
         const errors = this.scanErrors.get(scanId) || [];
         const hasErrors = errors.length > 0;
         const hasResults = scanState.results.categories.length > 0;
+
+        // Check if there are actually any findings
+        const totalFindings = scanState.results.categories.reduce((total, category) => {
+            return total + (category.findings ? category.findings.length : 0);
+        }, 0);
+        const hasFindings = totalFindings > 0;
+
+        // Apply final scan-level deduplication
+        const deduplicationEngine = this.deduplicationEngines.get(scanId);
+        if (deduplicationEngine && hasFindings) {
+            try {
+                // Get all findings from all categories
+                const allFindings = [];
+                scanState.results.categories.forEach(category => {
+                    if (category.findings) {
+                        allFindings.push(...category.findings);
+                    }
+                });
+
+                // Apply final deduplication across all scan phases
+                const finalDeduplicatedFindings = deduplicationEngine.deduplicateScanFindings(allFindings);
+
+                console.log(`[ORCHESTRATOR] Final deduplication: ${allFindings.length} -> ${finalDeduplicatedFindings.length} findings`);
+
+                // Update scan results with final deduplicated findings
+                this.scanResults.set(scanId, finalDeduplicatedFindings);
+
+                // Recalculate summary with final deduplicated results
+                scanState.results.summary = this.calculateFinalSummary(finalDeduplicatedFindings);
+
+                // Add deduplication statistics
+                const deduplicationStats = deduplicationEngine.getStats();
+                scanState.results.deduplicationStats = {
+                    ...deduplicationStats,
+                    finalFindingsCount: finalDeduplicatedFindings.length,
+                    totalDuplicatesRemoved: allFindings.length - finalDeduplicatedFindings.length,
+                    deduplicationEnabled: true
+                };
+
+                console.log(`[ORCHESTRATOR] Deduplication stats:`, scanState.results.deduplicationStats);
+
+            } catch (error) {
+                console.warn(`[ORCHESTRATOR] Final deduplication failed:`, error.message);
+                // Add error info to results
+                scanState.results.deduplicationStats = {
+                    deduplicationEnabled: false,
+                    error: error.message,
+                    fallbackUsed: true
+                };
+            }
+        } else {
+            // No deduplication applied
+            scanState.results.deduplicationStats = {
+                deduplicationEnabled: hasFindings && deduplicationEngine,
+                reason: !deduplicationEngine ? 'No deduplication engine' : 'No results to deduplicate'
+            };
+        }
 
         // Determine final status
         if (hasErrors && !hasResults) {
@@ -422,7 +553,24 @@ class SimpleScanOrchestrator extends EventEmitter {
      * @returns {Object|null} Scan status or null if not found
      */
     getScanStatus(scanId) {
-        return this.scanProgress.get(scanId) || null;
+        const scanState = this.scanProgress.get(scanId);
+        if (!scanState) return null;
+
+        // Add deduplication status to progress reporting
+        const deduplicationEngine = this.deduplicationEngines.get(scanId);
+        const deduplicationStatus = deduplicationEngine ? {
+            enabled: true,
+            stats: deduplicationEngine.getStats(),
+            currentCacheSize: deduplicationEngine.fingerprintCache?.size || 0
+        } : {
+            enabled: false,
+            reason: 'No deduplication engine initialized'
+        };
+
+        return {
+            ...scanState,
+            deduplicationStatus
+        };
     }
 
     /**
@@ -494,6 +642,8 @@ class SimpleScanOrchestrator extends EventEmitter {
             this.scanProgress.delete(scanId);
             this.scanResults.delete(scanId);
             this.scanErrors.delete(scanId);
+            // Clean up deduplication engines
+            this.deduplicationEngines.delete(scanId);
         });
 
         return toDelete.length;
@@ -509,6 +659,9 @@ class SimpleScanOrchestrator extends EventEmitter {
         for (const scanId of this.scanProgress.keys()) {
             this.cancelScan(scanId);
         }
+
+        // Clean up all deduplication engines
+        this.deduplicationEngines.clear();
 
         console.log('✅ Simple Scan Orchestrator shutdown complete');
     }

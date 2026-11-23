@@ -58,23 +58,34 @@ class EnhancedPatternEngine {
             categories = ['secrets', 'vulnerabilities', 'configurations'],
             confidenceThreshold = this.confidenceThreshold,
             maxMatches = 100,
-            contextWindow = 50
+            contextWindow = 50,
+            enableDeduplication = true
         } = options;
 
         const matches = [];
         const processedPatterns = this.getPatternsByCategories(categories);
 
+        // Enhanced position tracking to prevent overlapping matches across all patterns
+        const globalProcessedPositions = new Map(); // Map of position ranges to pattern info
+
+        // Track unique matches for internal deduplication
+        const uniqueMatches = new Map();
+
         for (const pattern of processedPatterns) {
             const patternMatches = this.findPatternMatches(content, pattern, {
                 contextWindow,
-                maxMatches
+                maxMatches,
+                processedPositions: globalProcessedPositions
             });
 
-            for (const match of patternMatches) {
+            // Internal match deduplication within pattern results
+            const deduplicatedPatternMatches = this.deduplicatePatternMatches(patternMatches, pattern);
+
+            for (const match of deduplicatedPatternMatches) {
                 const confidence = this.calculateConfidence(match, pattern, content);
 
                 if (confidence >= confidenceThreshold) {
-                    matches.push({
+                    const enhancedMatch = {
                         ...match,
                         confidence,
                         pattern: {
@@ -83,26 +94,61 @@ class EnhancedPatternEngine {
                             category: pattern.category,
                             severity: pattern.severity
                         }
+                    };
+
+                    if (enableDeduplication) {
+                        // Create a deduplication key based on pattern ID and normalized value
+                        const deduplicationKey = this.generateDeduplicationKey(enhancedMatch);
+
+                        if (uniqueMatches.has(deduplicationKey)) {
+                            // Merge with existing match, keeping the higher confidence
+                            const existingMatch = uniqueMatches.get(deduplicationKey);
+                            const mergedMatch = this.mergeMatches(existingMatch, enhancedMatch);
+                            uniqueMatches.set(deduplicationKey, mergedMatch);
+                        } else {
+                            // Add occurrence count for tracking
+                            enhancedMatch.occurrenceCount = 1;
+                            enhancedMatch.locations = [{
+                                index: match.index,
+                                line: this.getLineNumber(content, match.index),
+                                column: this.getColumnNumber(content, match.index)
+                            }];
+                            uniqueMatches.set(deduplicationKey, enhancedMatch);
+                        }
+                    } else {
+                        matches.push(enhancedMatch);
+                    }
+
+                    // Mark position as processed with pattern information
+                    const positionKey = `${match.index}-${match.index + match.length}`;
+                    globalProcessedPositions.set(positionKey, {
+                        patternId: pattern.id,
+                        value: match.value,
+                        confidence: confidence
                     });
                 }
             }
 
-            if (matches.length >= maxMatches) break;
+            if (matches.length >= maxMatches && !enableDeduplication) break;
         }
 
-        return this.sortMatchesByConfidence(matches);
+        // Convert unique matches map to array if deduplication is enabled
+        const finalMatches = enableDeduplication ? Array.from(uniqueMatches.values()) : matches;
+
+        return this.sortMatchesByConfidence(finalMatches.slice(0, maxMatches));
     }
 
     /**
-     * Find all matches for a specific pattern
+     * Find all matches for a specific pattern with enhanced position tracking
      * @param {string} content - Content to search
      * @param {PatternDefinition} pattern - Pattern to match
      * @param {Object} options - Search options
      * @returns {RawMatch[]} Array of raw matches
      */
     findPatternMatches(content, pattern, options = {}) {
-        const { contextWindow = 50, maxMatches = 20 } = options;
+        const { contextWindow = 50, maxMatches = 20, processedPositions = new Map() } = options;
         const matches = [];
+        const patternProcessedPositions = new Set(); // Track positions for this pattern
         let match;
 
         // Reset regex lastIndex to ensure clean matching
@@ -111,6 +157,20 @@ class EnhancedPatternEngine {
         while ((match = pattern.regex.exec(content)) !== null && matches.length < maxMatches) {
             const startIndex = match.index;
             const endIndex = startIndex + match[0].length;
+
+            // Enhanced position tracking - check for overlaps with global processed positions
+            const hasGlobalOverlap = this.checkPositionOverlap(startIndex, endIndex, processedPositions);
+
+            // Check for overlaps within this pattern's matches
+            const hasPatternOverlap = this.checkPatternPositionOverlap(startIndex, endIndex, patternProcessedPositions);
+
+            if (hasGlobalOverlap || hasPatternOverlap) {
+                // Prevent infinite loops with zero-width matches
+                if (match[0].length === 0) {
+                    pattern.regex.lastIndex++;
+                }
+                continue;
+            }
 
             // Extract context around the match
             const contextStart = Math.max(0, startIndex - contextWindow);
@@ -134,6 +194,10 @@ class EnhancedPatternEngine {
             // Apply false positive filters
             if (!this.isFalsePositive(rawMatch, pattern)) {
                 matches.push(rawMatch);
+
+                // Track this position for pattern-level deduplication
+                const positionKey = `${startIndex}-${endIndex}`;
+                patternProcessedPositions.add(positionKey);
             }
 
             // Prevent infinite loops with zero-width matches
@@ -404,6 +468,193 @@ class EnhancedPatternEngine {
             vulnerabilities: [],
             configurations: []
         };
+    }
+
+    /**
+     * Generate a deduplication key for a match
+     * @param {PatternMatch} match - Match object
+     * @returns {string} Deduplication key
+     */
+    generateDeduplicationKey(match) {
+        // Normalize the value for consistent comparison
+        const normalizedValue = match.value.toLowerCase().trim();
+        return `${match.pattern.id}:${normalizedValue}`;
+    }
+
+    /**
+     * Merge two matches, preserving the best attributes
+     * @param {PatternMatch} existingMatch - Existing match
+     * @param {PatternMatch} newMatch - New match to merge
+     * @returns {PatternMatch} Merged match
+     */
+    mergeMatches(existingMatch, newMatch) {
+        return {
+            ...existingMatch,
+            // Keep the higher confidence score
+            confidence: Math.max(existingMatch.confidence, newMatch.confidence),
+            // Increment occurrence count
+            occurrenceCount: existingMatch.occurrenceCount + 1,
+            // Add new location
+            locations: [
+                ...existingMatch.locations,
+                {
+                    index: newMatch.index,
+                    line: this.getLineNumber(newMatch.context.full, newMatch.index),
+                    column: this.getColumnNumber(newMatch.context.full, newMatch.index)
+                }
+            ],
+            // Keep the most severe severity (critical > high > medium > low)
+            pattern: {
+                ...existingMatch.pattern,
+                severity: this.getMostSevereSeverity(existingMatch.pattern.severity, newMatch.pattern.severity)
+            }
+        };
+    }
+
+    /**
+     * Get line number for a given index in content
+     * @param {string} content - Full content
+     * @param {number} index - Character index
+     * @returns {number} Line number (1-based)
+     */
+    getLineNumber(content, index) {
+        return content.substring(0, index).split('\n').length;
+    }
+
+    /**
+     * Get column number for a given index in content
+     * @param {string} content - Full content
+     * @param {number} index - Character index
+     * @returns {number} Column number (1-based)
+     */
+    getColumnNumber(content, index) {
+        const beforeIndex = content.substring(0, index);
+        const lastNewlineIndex = beforeIndex.lastIndexOf('\n');
+        return lastNewlineIndex === -1 ? index + 1 : index - lastNewlineIndex;
+    }
+
+    /**
+     * Compare two severity levels and return the most severe
+     * @param {string} severity1 - First severity level
+     * @param {string} severity2 - Second severity level
+     * @returns {string} Most severe level
+     */
+    getMostSevereSeverity(severity1, severity2) {
+        const severityOrder = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+        const level1 = severityOrder[severity1] || 1;
+        const level2 = severityOrder[severity2] || 1;
+
+        return level1 >= level2 ? severity1 : severity2;
+    }
+
+    /**
+     * Check for position overlap with globally processed positions
+     * @param {number} startIndex - Start index of current match
+     * @param {number} endIndex - End index of current match
+     * @param {Map} processedPositions - Map of processed positions
+     * @returns {boolean} True if there's an overlap
+     */
+    checkPositionOverlap(startIndex, endIndex, processedPositions) {
+        for (const [positionKey, positionInfo] of processedPositions) {
+            const [procStart, procEnd] = positionKey.split('-').map(Number);
+
+            // Check for any overlap between ranges
+            if ((startIndex >= procStart && startIndex < procEnd) ||
+                (endIndex > procStart && endIndex <= procEnd) ||
+                (startIndex <= procStart && endIndex >= procEnd)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check for position overlap within pattern-specific processed positions
+     * @param {number} startIndex - Start index of current match
+     * @param {number} endIndex - End index of current match
+     * @param {Set} patternProcessedPositions - Set of processed positions for this pattern
+     * @returns {boolean} True if there's an overlap
+     */
+    checkPatternPositionOverlap(startIndex, endIndex, patternProcessedPositions) {
+        for (const positionKey of patternProcessedPositions) {
+            const [procStart, procEnd] = positionKey.split('-').map(Number);
+
+            // Check for any overlap between ranges
+            if ((startIndex >= procStart && startIndex < procEnd) ||
+                (endIndex > procStart && endIndex <= procEnd) ||
+                (startIndex <= procStart && endIndex >= procEnd)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Deduplicate matches within a single pattern's results
+     * @param {RawMatch[]} matches - Array of raw matches from a pattern
+     * @param {PatternDefinition} pattern - Pattern definition
+     * @returns {RawMatch[]} Deduplicated matches
+     */
+    deduplicatePatternMatches(matches, pattern) {
+        if (matches.length <= 1) {
+            return matches;
+        }
+
+        const uniqueMatches = new Map();
+
+        for (const match of matches) {
+            // Create a deduplication key based on normalized value and position proximity
+            const normalizedValue = match.value.toLowerCase().trim();
+            const deduplicationKey = `${pattern.id}:${normalizedValue}`;
+
+            if (uniqueMatches.has(deduplicationKey)) {
+                const existingMatch = uniqueMatches.get(deduplicationKey);
+
+                // Check if matches are close enough to be considered duplicates
+                const positionDifference = Math.abs(match.index - existingMatch.index);
+
+                // If positions are very close (within 10 characters), merge them
+                if (positionDifference <= 10) {
+                    // Keep the match with better context or earlier position
+                    const betterMatch = this.selectBetterMatch(existingMatch, match);
+                    uniqueMatches.set(deduplicationKey, betterMatch);
+                } else {
+                    // Different positions, create a new key with position info
+                    const positionKey = `${deduplicationKey}:${Math.floor(match.index / 100)}`;
+                    if (!uniqueMatches.has(positionKey)) {
+                        uniqueMatches.set(positionKey, match);
+                    }
+                }
+            } else {
+                uniqueMatches.set(deduplicationKey, match);
+            }
+        }
+
+        return Array.from(uniqueMatches.values());
+    }
+
+    /**
+     * Select the better match between two similar matches
+     * @param {RawMatch} match1 - First match
+     * @param {RawMatch} match2 - Second match
+     * @returns {RawMatch} Better match
+     */
+    selectBetterMatch(match1, match2) {
+        // Prefer matches with more context
+        const context1Length = match1.context.before.length + match1.context.after.length;
+        const context2Length = match2.context.before.length + match2.context.after.length;
+
+        if (context1Length !== context2Length) {
+            return context1Length > context2Length ? match1 : match2;
+        }
+
+        // Prefer matches with longer values
+        if (match1.value.length !== match2.value.length) {
+            return match1.value.length > match2.value.length ? match1 : match2;
+        }
+
+        // Prefer earlier position
+        return match1.index <= match2.index ? match1 : match2;
     }
 }
 
